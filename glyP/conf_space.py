@@ -15,8 +15,8 @@ class Space(list):
     created using the data found there. 
     for different molecules, different lists can (meaning should!) be made.'''
 
-    _temp = 298.15
-    _kT=0.0019872036*_temp
+    _temp = 298.15 #standard temperature Kelvin
+    _kT=0.0019872036*_temp #boltzmann
     _Ha2kcal=627.5095  
 
     def __init__(self, molecule, ir_resolution=1.0):

@@ -1,4 +1,3 @@
-import re
 
 #  10/2018 - CP and MM / HC-CUNY
 #  A class that creates an instance of a molecule defined as conformer.
@@ -15,6 +14,8 @@ import re
 
 
 import numpy as np
+import re
+import copy 
 #from utilities import * 
 from .utilities import *
 
@@ -75,9 +76,15 @@ class Conformer():
                      if int(line.split()[0]) == self.NAtoms:
                        read_geom = False
 
+        vibs_list = copy.deepcopy(vibs)
+        for i in range(self.NVibs):
+            vibs_list[i] = vibs_list[i].tolist()
+            for j in range(self.NAtoms):
+                vibs_list[i][j] = list(vibs_list[i][j])
+        
         self.Freq = np.array( freq ) ; self.Ints = np.array( ints )
         self.Vibs=np.zeros((self.NVibs, self.NAtoms, 3))
-        for i in range(self.NVibs): self.Vibs[i,:,:] = vibs[i]
+        for i in range(self.NVibs): self.Vibs[i,:,:] = vibs_list[i]
         self.xyz = np.array(geom) ; self.atoms = atoms
 
     def __str__(self): 
