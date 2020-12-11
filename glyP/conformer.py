@@ -15,7 +15,6 @@
 
 import numpy as np
 import re
-import copy 
 #from utilities import * 
 from .utilities import *
 
@@ -50,13 +49,18 @@ class Conformer():
 
                 elif re.search('^  Atom  AN', line): 
                      normal_mode_flag = True          #locating normal modes of a frequency
-                     mode_1 = []; mode_2 = []; mode_3 = []
+                     mode_1 = []; mode_2 = []; mode_3 = [];
                      continue
 
                 elif normal_mode_flag == True and re.search('^\s*\d*\s*.\d*', line) and len(line.split()) > 3:
-                     mode_1.append(map(float, line.split()[2:5]))
-                     mode_2.append(map(float, line.split()[5:8]))
-                     mode_3.append(map(float, line.split()[8:11]))
+                     #mode_1.append(map(float, line.split()[2:5]))
+                     #mode_2.append(map(float, line.split()[5:8]))
+                     #mode_3.append(map(float, line.split()[8:11]))
+                     #replaced the maps with list parseing
+                     mode_1.append([float(x) for x in line.split()[2:5]])
+                     mode_2.append([float(x) for x in line.split()[5:8]])
+                     mode_3.append([float(x) for x in line.split()[8:11]])
+                     
 
                 elif normal_mode_flag == True: 
                      normal_mode_flag = False 
@@ -71,20 +75,16 @@ class Conformer():
 
                 elif freq_flag == True and re.search('Coordinates', line) : read_geom = True
                 elif freq_flag == True and read_geom == True and re.search('^\s*.\d', line):
-                     geom.append(map(float, line.split()[3:6]))
+                     #geom.append(map(float, line.split()[3:6])) 
+                     #convert to a parse directly into list rather than map
+                     geom.append([float(x) for x in line.split()[3:6]])
                      atoms.append(element_symbol(line.split()[1]))
                      if int(line.split()[0]) == self.NAtoms:
                        read_geom = False
-
-        vibs_list = copy.deepcopy(vibs)
-        for i in range(self.NVibs):
-            vibs_list[i] = vibs_list[i].tolist()
-            for j in range(self.NAtoms):
-                vibs_list[i][j] = list(vibs_list[i][j])
-        
+     
         self.Freq = np.array( freq ) ; self.Ints = np.array( ints )
         self.Vibs=np.zeros((self.NVibs, self.NAtoms, 3))
-        for i in range(self.NVibs): self.Vibs[i,:,:] = vibs_list[i]
+        for i in range(self.NVibs): self.Vibs[i,:,:] = vibs[i]
         self.xyz = np.array(geom) ; self.atoms = atoms
 
     def __str__(self): 
