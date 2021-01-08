@@ -26,7 +26,7 @@ class Space(list):
 
         for (root, dirs, files) in os.walk('./'+molecule):
             for dirname in dirs:
-                print (dirname)
+                #print (dirname)
                 #oldername = os.path.basename(dirpath)
                 if dirname == 'experimental':
                     expIR= np.genfromtxt(molecule+'/'+dirname+'/exp.dat')
@@ -52,6 +52,8 @@ class Space(list):
         '''Prints a nice table with coded molecular values'''
 
         print ("%20s%20s%20s%20s\n" %('id', 'E', 'H', 'F'))
+        #sorted the conformers stored in self by their energy
+        self.sort(key = lambda x: x.E)
         for conf in self: 
             print ("%20s%20.2f%20.2f%20.2f\n" %(conf._id, conf.E*self._Ha2kcal, conf.H*self._Ha2kcal, conf.F*self._Ha2kcal))
         return ''
