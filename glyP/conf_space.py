@@ -8,15 +8,15 @@ from copy import copy as cp
 
 class Space(list):
 
-    '''A conformational space consisting of all conformers sfound in specified directory.
+    '''A conformational space consisting of all conformers found in specified directory.
     The directory tree should have a structure:
     'molecule'/*/*log
-    if directory 'molecule' holds a directory 'experimetnal', an attibute self.expIR is 
+    if directory 'molecule' holds a directory 'experimental', an attibute self.expIR is 
     created using the data found there. 
     for different molecules, different lists can (meaning should!) be made.'''
 
-    _temp = 298.15
-    _kT=0.0019872036*_temp
+    _temp = 298.15 #standard temperature Kelvin
+    _kT=0.0019872036*_temp #boltzmann
     _Ha2kcal=627.5095  
 
     def __init__(self, molecule, ir_resolution=1.0):
@@ -52,6 +52,8 @@ class Space(list):
         '''Prints a nice table with coded molecular values'''
 
         print ("%20s%20s%20s%20s\n" %('id', 'E', 'H', 'F'))
+        #sorted the conformers stored in self by their energy
+        self.sort(key = lambda x: x.E)
         for conf in self: 
             print ("%20s%20.2f%20.2f%20.2f\n" %(conf._id, conf.E*self._Ha2kcal, conf.H*self._Ha2kcal, conf.F*self._Ha2kcal))
         return ''
