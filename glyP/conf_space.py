@@ -8,10 +8,10 @@ from copy import copy as cp
 
 class Space(list):
 
-    '''A conformational space consisting of all conformers sfound in specified directory.
+    '''A conformational space consisting of all conformers found in specified directory.
     The directory tree should have a structure:
     'molecule'/*/*log
-    if directory 'molecule' holds a directory 'experimetnal', an attibute self.expIR is 
+    if directory 'molecule' holds a directory 'experimental', an attibute self.expIR is 
     created using the data found there. 
     for different molecules, different lists can (meaning should!) be made.'''
 
@@ -26,7 +26,7 @@ class Space(list):
 
         for (root, dirs, files) in os.walk('./'+molecule):
             for dirname in dirs:
-                #print (dirname)
+                print (dirname)
                 #oldername = os.path.basename(dirpath)
                 if dirname == 'experimental':
                     expIR= np.genfromtxt(molecule+'/'+dirname+'/exp.dat')
