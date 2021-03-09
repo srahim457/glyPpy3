@@ -7,13 +7,6 @@ from .utilities import *
 from .display_utilities import *
 import numpy as np
 
-#i'll move these imports once i move stuff into another file
-import matplotlib
-import matplotlib.pyplot as plt
-import texttable as tx
-import sys
-
-
 
 def _main():
     
