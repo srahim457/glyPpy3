@@ -31,7 +31,7 @@ class Space(list):
                 if dirname == 'experimental':
                     expIR= np.genfromtxt(molecule+'/'+dirname+'/exp.dat')
                     new_grid = np.arange(np.ceil(expIR[0,0]), np.floor(expIR[-1,0]), incr)
-                    self.expIR = np.vstack((new_grid, interpolate.griddata(expIR[:,0], expIR[:,1], new_grid, method='cubic'))).T
+                    self.expIR = np.vstack((new_grid, interpolate.griddata(expIR[:,0], expIR[:,1], new_grid, method='cubic'))).T #espec - experimental spectrum
                     #K = np.ceiling(expIR[:,0])
                     #I = expIR[:,1]
                     #expIR = np.column_stack((K,I))
@@ -64,20 +64,6 @@ class Space(list):
 
         for conf in self: conf.gaussian_broadening(broaden, resolution=self.ir_resolution)
                    
-    def assign_ring_puckers(self):
-
-        ''' assign rings to each conformer '''
-
-        #try: self.ring
-        #except AttributeError: print "find ring_atoms first" ; sys.quit()
-
-        for conf in self: 
-            conf.ring = []
-            conf.ring_angle = []
-            for r in self.rings: 
-                phi, psi, R = calculate_ring(conf.xyz, r)
-                conf.ring.append(R) ; conf.ring_angle.append([phi, psi])
-
     def reference_to_zero(self, energy_function='E'):
 
         '''Finds a conformer with the lowest specified energy function and 
@@ -94,13 +80,14 @@ class Space(list):
         for conf in self: 
               conf.E -= Eref;  conf.H -= Href ;  conf.F -= Fref
 
-    def create_connectivity_matrix(self, index=0, distXX=1.6, distXH=1.2):
+    def create_connectivity_matrix(self, index=0, distXX=1.6, distXH=1.2): #1
 
         '''Create a connectivity matrix as an attribute to the conf_space:
         index - index of conf used for the matrix 
         distXX - cutoff distance between heavy atoms
         distXH - cutoff distance between heavy at - hydrogen '''
 
+        print('creating connectivity matrix')
         Nat = self[0].NAtoms
         conf = self[index]
         self.conn_mat = np.zeros((Nat, Nat)) 
@@ -111,25 +98,28 @@ class Space(list):
                 elif (conf.atoms[at1] == 'H' or conf.atoms[at2] == 'H') and dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
                 elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
 
-    def assign_pyranose_atoms(self):
+    def assign_pyranose_atoms(self): #2
 
         import networkx as nx
         
+        print('assigning pyranose atoms')
         cm = nx.graph.Graph(self.conn_mat)
-        rings = nx.cycle_basis(cm)
-        an = self[0].atoms
-        self.rings = []
+        cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
+        atom_names = self[0].atoms 
+        self.rings = [] 
         n = 0
-        for r in rings:
-            self.rings.append({})
-            rd = self.rings[n]
+        for r in cycles_in_graph:
+            self.rings.append({}) #dictionary, probably atom desc
+            # C4 and O
+            rd = self.rings[n] # rd = ring dicitionary
             for at in r:
-                if an[at] == 'O': 
-                    rd['O'] = at 
+                if atom_names[at] == 'O': 
+                    rd['O'] = at #atom one of the rings
                 else: 
                     for at2 in np.where(self.conn_mat[at] == 1)[0]: 
-                        if an[at2] == 'C' and at2 not in r: 
+                        if atom_names[at2] == 'C' and at2 not in r: 
                             rd['C4'] = at  
+            #               
             for at in rd.values(): r.remove(at)
             for at in r: 
                 if self.conn_mat[at][rd['O']] == 1: rd['C0'] = at
@@ -140,3 +130,20 @@ class Space(list):
                 elif self.conn_mat[at][rd['C3']] == 1: rd['C2'] = at                        
             for at in [rd['C2'], rd['C1']]:  r.remove(at)
             n += 1 
+
+    def assign_ring_puckers(self): #3
+
+        ''' assign rings to each conformer '''
+
+        #try: self.ring (rings??)
+        #except AttributeError: print "find ring_atoms first" ; sys.quit()
+
+        print('assigning rings')
+
+        for conf in self: 
+            conf.ring = []
+            conf.ring_angle = []
+            for r in self.rings: 
+                phi, psi, R = calculate_ring(conf.xyz, r)
+                conf.ring.append(R) ; conf.ring_angle.append([phi, psi])
+

@@ -82,10 +82,20 @@ class Conformer():
                      if int(line.split()[0]) == self.NAtoms:
                        read_geom = False
      
-        self.Freq = np.array( freq ) ; self.Ints = np.array( ints )
+        self.Freq = np.array( freq ) 
+        self.Ints = np.array( ints )
         self.Vibs=np.zeros((self.NVibs, self.NAtoms, 3))
         for i in range(self.NVibs): self.Vibs[i,:,:] = vibs[i]
-        self.xyz = np.array(geom) ; self.atoms = atoms
+        self.xyz = np.array(geom)
+        self.atoms = atoms
+
+        #making a tuple: EXPERIMENTAL
+        #I'm combining the atoms and xyz into a tuple because each atom has a respective xyz coordinate. idk might be a more useful container than 2 separate lists
+        list_combining_atoms_and_xyz =[]
+        for i in range(len(self.xyz)):
+            temp_tuple = (self.atoms[i],self.xyz[i])
+            list_combining_atoms_and_xyz.append(temp_tuple)
+        self.atoms_and_xyz = list_combining_atoms_and_xyz
 
     def __str__(self): 
 
@@ -110,7 +120,7 @@ class Conformer():
         IR = np.zeros((int(4000/resolution) + 1,))
         X = np.linspace(0,4000, int(4000/resolution)+1)
         for f, i in zip(self.Freq, self.Ints):  IR += i*np.exp(-0.5*((X-f)/int(broaden))**2)
-        self.IR=np.vstack((X, IR)).T
+        self.IR=np.vstack((X, IR)).T #tspec
 
     def plot_ir(self, xmin = 800, xmax = 1800, scaling_factor = 0.965,  plot_exp = False, exp_data = None):
 

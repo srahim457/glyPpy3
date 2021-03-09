@@ -50,7 +50,9 @@ def find_canon(n1, n2):
         diff = haversine(n1, n2, dict_canon[elem][0], dict_canon[elem][1])
         new_dict[elem] = diff
 
-    return min(new_dict.iteritems(), key=itemgetter(1))[0]
+    #return min(new_dict.iteritems(), key=itemgetter(1))[0]
+    #Python2 dict.iteritems() became just dict.items() in Python3 because the old version of dict.items() was inefficient and nobody used it
+    return min(new_dict.items(), key=itemgetter(1))[0]
 
 
 def norm(a):

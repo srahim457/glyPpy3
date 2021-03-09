@@ -29,8 +29,21 @@ def calculate_ring(xyz, ring_atoms):
 
     phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
     return phi, psi, R
-
-def calculate_rmsd(xyz1, xyz2, atoms=None):
+ 
+def calculate_rmsd(conf1, conf2, atoms=None): #pass 2 conformers instead of just the xyz list 
+    xyz1 = []
+    xyz2 = []
+    #exclude the specified atom
+    if atoms != None:
+      for i in range(len(conf1.atoms)):
+        if conf1.atoms[i] != atoms:
+          xyz1.append(conf1.xyz[i])
+      for i in range(len(conf2.atoms)):
+        if conf2.atoms[i] != atoms:
+          xyz2.append(conf2.xyz[i])
+    else:
+      xyz1 = conf1.xyz
+      xyz2 = conf2.xyz
 
     return rmsd.rmsd_qcp(xyz1, xyz2)
 
@@ -104,7 +117,7 @@ def ypendry(spec,d1_spec,VI):
    return y
 
 
-def rfac(espec, tspec, start=1000, stop=1700, w_incr=1.0, shift_min=-10, shift_max=+10, shift_incr=1, r="pendry", VI=10):
+def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_max=+10, shift_incr=1, r="pendry", VI=10):
 
    """ %prog [options] r-fac.in
         Reads two spectra and calculates various R-factors -- FS 2011
@@ -234,7 +247,9 @@ def rfac(espec, tspec, start=1000, stop=1700, w_incr=1.0, shift_min=-10, shift_m
    #sys.stdout.write("\nMinimal r-factors:\n")
    if "pendry" in r:
       #sys.stdout.write("minimal r-factor: Delta = %8.5f, Pendry R-factor = %7.5f \n" % ( min_pendry[1], min_pendry[0]))
-        print  (min_pendry[1], min_pendry[0])
+        #print  (min_pendry[1], min_pendry[0])
+        #I'm adding a return statement
+        return min_pendry[0]
    if "R1" in r:
       sys.stdout.write("minimal r-factor: Delta = %8.5f, R1 R-factor = %7.5f \n" % ( min_r1[1], min_r1[0]))
    if "R2" in r:
