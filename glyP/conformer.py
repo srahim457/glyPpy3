@@ -17,6 +17,7 @@ import numpy as np
 import re
 #from utilities import * 
 from .utilities import *
+import networkx as nx
 
 class Conformer():
 
@@ -101,8 +102,15 @@ class Conformer():
 
        '''Prints a some molecular properties'''
 
-       print ("%30s\n                  NAtoms=%5d\n" %(self._id, self.NAtoms))
-       print ("E=%20.8f H=%20.8f F=%20.8f\n" %( self.E, self.H, self.F))
+       print ("%30s            NAtoms=%5d" %(self._id, self.NAtoms))
+       print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
+       if hasattr(self, 'rings'):
+           for n in range(len(self.ring)):
+                print ("Ring%3d:%5s phi/psi%6.1f/%6.1f" %(n, self.ring[n], self.ring_angle[n][0], self.ring_angle[n][1]), end='')
+                for at in ['C0', 'C1', 'C2', 'C3', 'C4', 'O' ]: 
+                    print ("%3s:%3s" %(at, self.ring_atoms[n][at]), end='')
+                print()
+
        return ' '
 
     def gaussian_broadening(self, broaden, resolution=1):
@@ -121,6 +129,57 @@ class Conformer():
         X = np.linspace(0,4000, int(4000/resolution)+1)
         for f, i in zip(self.Freq, self.Ints):  IR += i*np.exp(-0.5*((X-f)/int(broaden))**2)
         self.IR=np.vstack((X, IR)).T #tspec
+ 
+
+    def connectivity_matrix(self, distXX, distXH):
+
+        Nat = self.NAtoms
+        self.conn_mat = np.zeros((Nat, Nat))
+        for at1 in range(Nat):
+            for at2 in range(Nat):
+                dist = get_distance(self.xyz[at1], self.xyz[at2])
+                if at1 == at2: pass
+                elif (self.atoms[at1] == 'H' or self.atoms[at2] == 'H') and dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
+                elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
+
+    def assign_ring_atoms(self):
+
+
+        cm = nx.graph.Graph(self.conn_mat)
+        cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
+        atom_names = self.atoms
+        self.ring_atoms = []
+        n = 0
+        for r in cycles_in_graph:
+            self.ring_atoms.append({}) #dictionary, probably atom desc
+            # C4 and O
+            rd = self.ring_atoms[n] # rd = ring dicitionary
+            for at in r:
+                if atom_names[at] == 'O':
+                    rd['O'] = at #atom one of the rings
+                else:
+                    for at2 in np.where(self.conn_mat[at] == 1)[0]:
+                        if atom_names[at2] == 'C' and at2 not in r:
+                            rd['C4'] = at
+            #
+            for at in rd.values(): r.remove(at)
+            for at in r:
+                if self.conn_mat[at][rd['O']] == 1: rd['C0'] = at
+                elif self.conn_mat[at][rd['C4']] == 1: rd['C3'] = at
+            for at in [rd['C3'], rd['C0']]:  r.remove(at)
+            for at in r:
+                if self.conn_mat[at][rd['C0']] == 1: rd['C1'] = at
+                elif self.conn_mat[at][rd['C3']] == 1: rd['C2'] = at
+            for at in [rd['C2'], rd['C1']]:  r.remove(at)
+            n += 1
+
+    def create_ga_vector(self ):
+
+        self.ga_vectorR = []
+        for ring in self.ring_angle:
+            self.ga_vectorR.append([ring[0], ring[1]])
+        self.ga_vectorD = []
+        
 
     def plot_ir(self, xmin = 800, xmax = 1800, scaling_factor = 0.965,  plot_exp = False, exp_data = None):
 
