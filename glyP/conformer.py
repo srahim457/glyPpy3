@@ -18,6 +18,7 @@ import re
 #from utilities import * 
 from .utilities import *
 import networkx as nx
+from operator import itemgetter, attrgetter
 
 class Conformer():
 
@@ -107,7 +108,7 @@ class Conformer():
        if hasattr(self, 'rings'):
            for n in range(len(self.ring)):
                 print ("Ring%3d:%5s phi/psi%6.1f/%6.1f" %(n, self.ring[n], self.ring_angle[n][0], self.ring_angle[n][1]), end='')
-                for at in ['C0', 'C1', 'C2', 'C3', 'C4', 'O' ]: 
+                for at in ['C1', 'C2', 'C3', 'C4', 'C5', 'O' ]: 
                     print ("%3s:%3s" %(at, self.ring_atoms[n][at]), end='')
                 print()
 
@@ -152,7 +153,7 @@ class Conformer():
         n = 0
         for r in cycles_in_graph:
             self.ring_atoms.append({}) #dictionary, probably atom desc
-            # C4 and O
+            # C5 and O
             rd = self.ring_atoms[n] # rd = ring dicitionary
             for at in r:
                 if atom_names[at] == 'O':
@@ -160,18 +161,48 @@ class Conformer():
                 else:
                     for at2 in np.where(self.conn_mat[at] == 1)[0]:
                         if atom_names[at2] == 'C' and at2 not in r:
-                            rd['C4'] = at
+                            rd['C5'] = at
             #
             for at in rd.values(): r.remove(at)
             for at in r:
-                if self.conn_mat[at][rd['O']] == 1: rd['C0'] = at
-                elif self.conn_mat[at][rd['C4']] == 1: rd['C3'] = at
-            for at in [rd['C3'], rd['C0']]:  r.remove(at)
+                if self.conn_mat[at][rd['O']] == 1: rd['C1'] = at
+                elif self.conn_mat[at][rd['C5']] == 1: rd['C4'] = at
+            for at in [rd['C4'], rd['C1']]:  r.remove(at)
             for at in r:
-                if self.conn_mat[at][rd['C0']] == 1: rd['C1'] = at
-                elif self.conn_mat[at][rd['C3']] == 1: rd['C2'] = at
-            for at in [rd['C2'], rd['C1']]:  r.remove(at)
+                if self.conn_mat[at][rd['C1']] == 1: rd['C2'] = at
+                elif self.conn_mat[at][rd['C4']] == 1: rd['C3'] = at
+            for at in [rd['C3'], rd['C2']]:  r.remove(at)
             n += 1
+
+        #Find reduncing end and sort the list:
+        C1s = [ x['C1'] for x in self.ring_atoms]; C1pos = []
+        for n, C1 in enumerate(C1s): 
+            NRed=0; NNon=0
+            for C12 in C1s:
+                path = nx.shortest_path(cm, C1, C12)
+                if len(path) == 1: continue
+                elif path[1] in self.ring_atoms[n].values(): NNon+=1
+                else: NRed += 1
+            C1pos.append(NRed)
+        self.ring_atoms = [ i[0] for i in sorted(zip(self.ring_atoms, C1pos), key=itemgetter(1)) ]
+        #identify bonds:
+        #1. Create shortest paths between anomeric carbons to get O's and bond types.
+        C1s = [ x['C1'] for x in self.ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
+        self.dih_atoms = []
+        for at in range(len(C1s)-1):
+            at1 = at+1 
+            path = nx.shortest_path(cm, C1s[at], C1s[at1])
+            n=2 ; linker = [ C1s[at1] ]
+            while n < len(path):
+                if path[-n] in self.ring_atoms[at].values(): 
+                    linker.append(path[-n])
+                    linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(linker[-1])])[-1]
+                    #To be added: glycosidic bond configuration + atoms for the dihedral measurement
+                    self.dih_atoms.append([linker, 'a1'+linker_type])
+                    break
+                else: linker.append(path[-n])
+                n=n+1
+        print(self.dih_atoms)
 
     def create_ga_vector(self ):
 
@@ -181,7 +212,7 @@ class Conformer():
         self.ga_vectorD = []
         
 
-    def plot_ir(self, xmin = 800, xmax = 1800, scaling_factor = 0.965,  plot_exp = False, exp_data = None):
+    def plot_ir(self, xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None):
 
         ''' Plots the IR spectrum in xmin -- xmax range,
         x-axis is multiplied by scaling factor, everything
@@ -192,7 +223,7 @@ class Conformer():
         import matplotlib.pyplot as plt
         from matplotlib.ticker import NullFormatter
 
-        fig, ax = plt.subplots(1, figsize=(16, 4))
+        fig, ax = plt.subplots(1, figsize=(8, 2))
 
         ax.tick_params(axis='both', which='both', bottom=True, top=False, labelbottom=True, right=False, left=False, labelleft=False)
         ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False);  ax.spines['left'].set_visible(False)
@@ -227,5 +258,60 @@ class Conformer():
         plt.savefig(self._id+'.png', dpi=200)
 
 
+    def plot_ir2(self,  xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None, exp_int_split = False, normal_modes=False):
+
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import NullFormatter
+
+        fig, ax = plt.subplots(1, figsize=(8,2))
+
+        #left, width = 0.02, 0.98 ; bottom, height = 0.15, 0.8
+        #ax  = [left, bottom, width, height ]
+        #ax  = plt.axes(ax)
+        exten = 20
+
+        ax.tick_params(axis='both', which='both', bottom=True, top=False, labelbottom=True, right=False, left=False, labelleft=False)
+        ax.spines['top'].set_visible(False) ; ax.spines['right'].set_visible(False) ; ax.spines['left'].set_visible(False)
+        ax.xaxis.set_tick_params(direction='out')
+        ax.yaxis.set_major_formatter(NullFormatter())
+        ax.set_ylim(0,1.1)
+
+        xticks = np.linspace(xmin,xmax,int((xmax-xmin+2*exten)/100)+1)
+        ax.set_xticks(xticks)
+        ax.set_xticklabels([int(x) for x in xticks], fontsize=10)
+        ax.set_xlim(xmin-exten, xmax+exten+10)
 
 
+       #for t in xticks:
+       #    ax.plot([t,t],[0,3], 'k--')
+
+        shift = 0.05 ;         incr = (self.IR[-1,0] - self.IR[0,0])/(len(self.IR)-1)
+        scale_t  =  1/np.amax(self.IR[int(xmin/incr):int(xmax/incr)+100,1])
+
+        if plot_exp == True:
+            if exp_int_split == False:  
+                scale_exp=  1/np.amax(exp_data[:,1])
+                ax.plot(exp_data[:,0], exp_data[:,1]*scale_exp+shift, color='r', alpha=0.5, linewidth=2)
+                ax.fill_between(exp_data[:,0], exp_data[:,1]*scale_exp+shift, np.linspace(shift,shift, len(exp_data[:,1])), color='r', alpha=0.5)
+
+            else:
+                scale_expL=  1/np.amax(exp_data[:,1])
+                scale_expH= scale_t * np.amax(self.IR[int(1200/incr):int(xmax/incr)+100,1]) /(np.amax(np.where(exp_data[:,0] > 1200, 0, exp_data[:,1])))
+                split_wn = np.where(exp_data[:,0] == 1200) ; split_wn = split_wn[0][0]
+                ax.plot(exp_data[:split_wn,0], exp_data[:split_wn,1]*scale_expL+shift, color='r', alpha=0.75, linewidth=2)
+
+                ax.plot(exp_data[split_wn:,0], exp_data[split_wn:,1]*scale_expH+shift, color='r', alpha=0.75, linewidth=2)
+                #ax.fill_between(exp_data[:,0], exp_data[:,1]*scale_expL+shift, np.linspace(shift,shift, len(exp_data[:,1])), color='r', alpha=0.5)
+
+        Xsc = self.IR[:,0]* scaling_factor ; IRsc = self.IR[:,1]*scale_t
+        ir_theo = ax.plot(Xsc, IRsc+shift, color='0.25', linewidth=2)
+        ax.fill_between(Xsc, np.linspace(shift, shift, len(IRsc)), IRsc+shift, color='0.5', alpha=0.5)
+
+
+        if normal_modes == True:
+            for l in range(len(self.Freq)):
+                 ax.plot([scaling_factor*self.Freq[l], scaling_factor*self.Freq[l]], [shift, self.Ints[l]*scale_t+shift], linewidth=2, color='0.25')        
+
+        fig.tight_layout()
+        plt.savefig(self._id+'.png', dpi=200)
+           
