@@ -47,27 +47,6 @@ def calculate_rmsd(conf1, conf2, atoms=None): #pass 2 conformers instead of just
 
     return rmsd.rmsd_qcp(xyz1, xyz2)
 
-def create_input(space, conf, input_file):
-
-    theory = space.theory
-    if theory['disp'] == True: 
-        theory['disp'] = 'EmpiricalDispersion=GD3'
-    else:
-        theory['disp'] = ' ' 
-    f = open('input.com', 'w')
-    f.write('%nproc=' + str(theory['nprocs'])+'\n')
-    f.write('%mem='+theory['mem']+'\n')
-    f.write(' '.join(['#P', theory['method'], theory['basis_set'],  theory['jobtype'], theory['other_options'], theory['disp'], '\n']))
-    f.write('\n')
-    f.write(conf._id + '\n')
-    f.write('\n ')
-    f.write(str(theory['charge']) + ' ' + str(theory['multiplicity']) + '\n')
-    for at, xyz in zip(conf.atoms, conf.xyz):
-        line = '{0:5s} {1:10.3f} {2:10.3f} {3:10.3f}\n'.format(at, xyz[0], xyz[1], xyz[2])
-        f.write(line)
-    f.write(' ')
-    f.close()
-
 def deriv(spec,h):
    """ calculate first derivative of function 'spec'
        using the central finite difference method up to 6th order,
