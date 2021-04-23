@@ -178,7 +178,7 @@ class Conformer():
         #Find reduncing end and sort the list:
         C1s = [ x['C1'] for x in self.ring_atoms]; C1pos = []
         for n, C1 in enumerate(C1s): 
-            NRed=0; NNon=0
+            NRed=0; NNon=0 #NRed = reducing end NNon = non reducing end
             for C12 in C1s:
                 path = nx.shortest_path(cm, C1, C12)
                 if len(path) == 1: continue
