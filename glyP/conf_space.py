@@ -52,11 +52,17 @@ class Space(list):
         '''Prints a nice table with coded molecular values'''
 
         print ("%20s%20s%20s%20s" %('id', 'E', 'H', 'F'))
-        #sorted the conformers stored in self by their energy
-        self.sort(key = lambda x: x.E)
         for conf in self: 
             print ("%20s%20.2f%20.2f%20.2f" %(conf._id, conf.E*self._Ha2kcal, conf.H*self._Ha2kcal, conf.F*self._Ha2kcal))
         return ''
+
+    def sort_energy(self, energy_function='E'):
+
+        '''Sorted the conformers according to selected energy_function'''
+
+        if energy_function == 'E':      self.sort(key = lambda x: x.E)
+        elif energy_function == 'H':    self.sort(key = lambda x: x.H)
+        elif energy_function == 'F':    self.sort(key = lambda x: x.F)
 
     def gaussian_broadening(self, broaden=1):
 
@@ -107,7 +113,7 @@ class Space(list):
         for conf in self: 
             conf.ring = []
             conf.ring_angle = []
-            for r in conf.rings: 
+            for r in conf.ring_atoms:
                 phi, psi, R = calculate_ring(conf.xyz, r)
                 conf.ring.append(R) ; conf.ring_angle.append([phi, psi])
 

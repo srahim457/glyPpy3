@@ -140,7 +140,8 @@ class Conformer():
             for at2 in range(Nat):
                 dist = get_distance(self.xyz[at1], self.xyz[at2])
                 if at1 == at2: pass
-                elif (self.atoms[at1] == 'H' or self.atoms[at2] == 'H') and dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
+                elif (self.atoms[at1] == 'H' or self.atoms[at2] == 'H'):
+                    if dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
                 elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
 
     def assign_ring_atoms(self):
@@ -202,7 +203,6 @@ class Conformer():
                     break
                 else: linker.append(path[-n])
                 n=n+1
-        print(self.dih_atoms)
 
     def create_ga_vector(self ):
 
