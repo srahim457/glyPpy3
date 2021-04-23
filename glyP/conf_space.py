@@ -51,12 +51,18 @@ class Space(list):
          
         '''Prints a nice table with coded molecular values'''
 
-        print ("%20s%20s%20s%20s\n" %('id', 'E', 'H', 'F'))
-        #sorted the conformers stored in self by their energy
-        self.sort(key = lambda x: x.E)
+        print ("%20s%20s%20s%20s" %('id', 'E', 'H', 'F'))
         for conf in self: 
-            print ("%20s%20.2f%20.2f%20.2f\n" %(conf._id, conf.E*self._Ha2kcal, conf.H*self._Ha2kcal, conf.F*self._Ha2kcal))
+            print ("%20s%20.2f%20.2f%20.2f" %(conf._id, conf.E*self._Ha2kcal, conf.H*self._Ha2kcal, conf.F*self._Ha2kcal))
         return ''
+
+    def sort_energy(self, energy_function='E'):
+
+        '''Sorted the conformers according to selected energy_function'''
+
+        if energy_function == 'E':      self.sort(key = lambda x: x.E)
+        elif energy_function == 'H':    self.sort(key = lambda x: x.H)
+        elif energy_function == 'F':    self.sort(key = lambda x: x.F)
 
     def gaussian_broadening(self, broaden=1):
 
@@ -80,56 +86,20 @@ class Space(list):
         for conf in self: 
               conf.E -= Eref;  conf.H -= Href ;  conf.F -= Fref
 
-    def create_connectivity_matrix(self, index=0, distXX=1.6, distXH=1.2): #1
+    def create_connectivity_matrix(self, distXX=1.6, distXH=1.2): #1
 
         '''Create a connectivity matrix as an attribute to the conf_space:
-        index - index of conf used for the matrix 
         distXX - cutoff distance between heavy atoms
         distXH - cutoff distance between heavy at - hydrogen '''
 
         print('creating connectivity matrix')
-        Nat = self[0].NAtoms
-        conf = self[index]
-        self.conn_mat = np.zeros((Nat, Nat)) 
-        for at1 in range(Nat):
-            for at2 in range(Nat):
-                dist = get_distance(conf.xyz[at1], conf.xyz[at2]) 
-                if at1 == at2: pass
-                elif (conf.atoms[at1] == 'H' or conf.atoms[at2] == 'H') and dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
-                elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
+        for conf in self: conf.connectivity_matrix(distXX=1.6, distXH=1.2)
 
     def assign_pyranose_atoms(self): #2
 
         import networkx as nx
-        
         print('assigning pyranose atoms')
-        cm = nx.graph.Graph(self.conn_mat)
-        cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
-        atom_names = self[0].atoms 
-        self.rings = [] 
-        n = 0
-        for r in cycles_in_graph:
-            self.rings.append({}) #dictionary, probably atom desc
-            # C4 and O
-            rd = self.rings[n] # rd = ring dicitionary
-            for at in r:
-                if atom_names[at] == 'O': 
-                    rd['O'] = at #atom one of the rings
-                else: 
-                    for at2 in np.where(self.conn_mat[at] == 1)[0]: 
-                        if atom_names[at2] == 'C' and at2 not in r: 
-                            rd['C4'] = at  
-            #               
-            for at in rd.values(): r.remove(at)
-            for at in r: 
-                if self.conn_mat[at][rd['O']] == 1: rd['C0'] = at
-                elif self.conn_mat[at][rd['C4']] == 1: rd['C3'] = at
-            for at in [rd['C3'], rd['C0']]:  r.remove(at)           
-            for at in r: 
-                if self.conn_mat[at][rd['C0']] == 1: rd['C1'] = at
-                elif self.conn_mat[at][rd['C3']] == 1: rd['C2'] = at                        
-            for at in [rd['C2'], rd['C1']]:  r.remove(at)
-            n += 1 
+        for conf in self: conf.assign_ring_atoms()
 
     def assign_ring_puckers(self): #3
 
@@ -143,7 +113,7 @@ class Space(list):
         for conf in self: 
             conf.ring = []
             conf.ring_angle = []
-            for r in self.rings: 
+            for r in conf.ring_atoms:
                 phi, psi, R = calculate_ring(conf.xyz, r)
                 conf.ring.append(R) ; conf.ring_angle.append([phi, psi])
 

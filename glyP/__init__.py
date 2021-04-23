@@ -6,6 +6,7 @@ from .utilities import *
 #from utilities import *
 from .display_utilities import *
 import numpy as np
+import networkx as nx
 
 
 def _main():
