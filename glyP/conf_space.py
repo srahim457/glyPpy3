@@ -19,33 +19,10 @@ class Space(list):
     _kT=0.0019872036*_temp #boltzmann
     _Ha2kcal=627.5095  
 
-    def __init__(self, molecule, ir_resolution=1.0):
-        
-        self.ir_resolution = ir_resolution 
-        incr = self.ir_resolution
+    def __init__(self):
 
-        for (root, dirs, files) in os.walk('./'+molecule):
-            for dirname in dirs:
-                print (dirname)
-                #oldername = os.path.basename(dirpath)
-                if dirname == 'experimental':
-                    expIR= np.genfromtxt(molecule+'/'+dirname+'/exp.dat')
-                    new_grid = np.arange(np.ceil(expIR[0,0]), np.floor(expIR[-1,0]), incr)
-                    self.expIR = np.vstack((new_grid, interpolate.griddata(expIR[:,0], expIR[:,1], new_grid, method='cubic'))).T #espec - experimental spectrum
-                    #K = np.ceiling(expIR[:,0])
-                    #I = expIR[:,1]
-                    #expIR = np.column_stack((K,I))
-                    #grid_old = np.arange(0,len(expIR))
-                    #exp_incr = (expIR[-1,0] -  expIR[0,0])/len(expIR)
-                    #grid_new = np.arange(grid_old[0],grid_old[-1]+incr/exp_incr,incr/exp_incr)
-                    #spline_1D = interpolate.splrep(grid_old,expIR.T[1],k=3,s=0) 
-                    #splrep finds spline of 1 d curve (x,y)--k repressents the recommended cubic spline, s represents the closeness vs smoothness tradeoff of k-- .T creates a transpose of the coordinates which you can then unpack and separate x and y
-                    #spline_coef = interpolate.splev(grid_new,spline_1D,der=0) #--splev provides the knots and coefficients--der is the degree of the spline and must be less or equal to k
-                    #self.expIR = np.vstack(( np.arange(expIR[0,0], expIR[0,0]+len(grid_new)*incr, incr), spline_coef)).T 
-                for ifiles in os.walk(molecule+'/'+dirname):
-                    for filename in ifiles[2]:
-                        if filename.endswith('.log'):
-                            self.append(Conformer(molecule+'/'+dirname+'/'+filename))
+        pass
+
 
     def __str__(self):
          
@@ -55,6 +32,41 @@ class Space(list):
         for conf in self: 
             print ("%20s%20.2f%20.2f%20.2f" %(conf._id, conf.E*self._Ha2kcal, conf.H*self._Ha2kcal, conf.F*self._Ha2kcal))
         return ''
+
+    def load_dir(self, molecule):
+
+        for (root, dirs, files) in os.walk('./'+molecule):
+            for dirname in dirs:
+                print (dirname)
+                for ifiles in os.walk(molecule+'/'+dirname):
+                    for filename in ifiles[2]:
+                        if filename.endswith('.log'):
+                            conf = Conformer('dummy')
+                            conf.load_log(molecule+'/'+dirname+'/'+filename)
+                            self.append(conf)
+
+    def load_exp(self, path, ir_resolution=1.0):
+
+        self.ir_resolution = ir_resolution 
+        expIR= np.genfromtxt(path)
+        new_grid = np.arange(np.ceil(expIR[0,0]), np.floor(expIR[-1,0]), self.ir_resolution)
+        self.expIR = np.vstack((new_grid, interpolate.griddata(expIR[:,0], expIR[:,1], new_grid, method='cubic'))).T #espec - experimental spectrum
+
+    def set_theory(self, **kwargs):
+
+        self.theory = { 'method': 'PBE1PBE', 
+                        'basis_set':'6-31+G(d,p)', 
+                        'jobtype':'opt freq', 
+                        'disp': True, 
+                        'other_options':'int=(grid=99590)', 
+                        'charge':0, 
+                        'multiplicity':1, 
+                        'nprocs':24, 
+                        'mem':'64GB'
+                        }
+
+        for key in kwargs: 
+            self.theory[key] = kwargs[key]
 
     def sort_energy(self, energy_function='E'):
 
