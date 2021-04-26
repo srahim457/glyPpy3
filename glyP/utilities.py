@@ -25,7 +25,7 @@ def element_symbol(A):
 def calculate_ring(xyz, ring_atoms): 
 
     sorted_atoms = []
-    for i in 'O', 'C0', 'C1', 'C2', 'C3', 'C4': sorted_atoms.append(ring_atoms[i])
+    for i in 'O', 'C1', 'C2', 'C3', 'C4', 'C5': sorted_atoms.append(ring_atoms[i])
 
     phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
     return phi, psi, R
