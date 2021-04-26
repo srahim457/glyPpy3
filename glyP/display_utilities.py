@@ -106,7 +106,7 @@ def display_table(index,molecule_ids,molecule_names,rmsd_all,rmsd_no_H,pendry):
 		temp.append(pendry[i]) 
 		index_vs_all.append(temp)
 		#Writing this as a csv
-		original_output = sys.stdout #save ref of original output to rest later
+		original_output = sys.stdout #save ref of original output to reset later
 		with open('rmsd.csv','a') as file:
 			sys.stdout = file #set output to the file
 			print(str(i)+','+str(molecule_names[i])+','+str(rmsd_all[i])+','+str(rmsd_no_H[i])+','+str(pendry[i]))
