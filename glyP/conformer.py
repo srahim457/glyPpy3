@@ -186,6 +186,7 @@ class Conformer():
                 else: NRed += 1
             C1pos.append(NRed)
         self.ring_atoms = [ i[0] for i in sorted(zip(self.ring_atoms, C1pos), key=itemgetter(1)) ]
+
         #identify bonds:
         #1. Create shortest paths between anomeric carbons to get O's and bond types.
         C1s = [ x['C1'] for x in self.ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
@@ -198,11 +199,17 @@ class Conformer():
                 if path[-n] in self.ring_atoms[at].values(): 
                     linker.append(path[-n])
                     linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(linker[-1])])[-1]
+                    #added the O of this ring as a reference atom for the dihedral angle measurement
+                    linker.append(self.ring_atoms[at+1]['O'])
                     #To be added: glycosidic bond configuration + atoms for the dihedral measurement
                     self.dih_atoms.append([linker, 'a1'+linker_type])
+                    #structure of linker is [C1,O (gly-bond),C4,O(adj to C1)]
+                    #consider changing linker to a deque for more intuitive readability with fast addition to the front
                     break
                 else: linker.append(path[-n])
                 n=n+1
+        #adding the Oxygen bonded to the C1 in the glycocidic bond as a reference for the dihedral measurement
+        
 
     def create_ga_vector(self ):
 

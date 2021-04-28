@@ -29,6 +29,110 @@ def calculate_ring(xyz, ring_atoms):
 
     phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
     return phi, psi, R
+
+def dihedral(at1,at2,at3,at4): 
+  
+  x1,y1,z1 = at1 #C1
+  x2,y2,z2 = at2 #O gly-bond
+  x3,y3,z3 = at3 #C4
+  x4,y4,z4 = at4 #O adj to C1, used as a reference atom to make the planes
+
+  '''
+  the numbering is not intuitive here, want to make a plane with three atoms 
+  O - C1 - O(gly-bond) : x4,y4,z4,x1,y1,z1,x2,y2,z2
+  C1 - O(gly-bond) - C4 : x1,y1,z1,x2,y2,z2,x3,y3,z3
+  '''
+  _dihedral=angle_pp(x4,y4,z4,x1,y1,z1,x2,y2,z2,x1,y1,z1,x2,y2,z2,x3,y3,z3)
+  
+  #parameters are passed differently for similar reasoning to above
+  if dist_plp(x4,y4,z4,x1,y1,z1,x2,y2,z2,x3,y3,z3) < 0: 
+    return -_dihedral
+  else:
+    return _dihedral
+
+def angle_pp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6):
+
+# calculate Hess plane for plane A
+  dx21 = x2 - x1
+  dy21 = y2 - y1
+  dz21 = z2 - z1
+  l21  = math.sqrt( dx21*dx21 + dy21*dy21 + dz21*dz21 )
+
+  cosa21 = dx21/l21
+  cosb21 = dy21/l21
+  cosg21 = dz21/l21
+
+  dx31 = x3 - x1
+  dy31 = y3 - y1
+  dz31 = z3 - z1
+  l31  = math.sqrt( dx31*dx31 + dy31*dy31 + dz31*dz31 )
+
+  cosa31 = dx31/l31
+  cosb31 = dy31/l31
+  cosg31 = dz31/l31
+
+  A1 = cosb21*cosg31 - cosb31*cosg21
+  B1 = cosg21*cosa31 - cosg31*cosa21
+  C1 = cosa21*cosb31 - cosa31*cosb21
+
+# calculate Hess plane for plane B
+  dx54 = x5 - x4
+  dy54 = y5 - y4
+  dz54 = z5 - z4
+  l54  = math.sqrt( dx54*dx54 + dy54*dy54 + dz54*dz54 )
+
+  cosa54 = dx54/l54
+  cosb54 = dy54/l54
+  cosg54 = dz54/l54
+
+  dx64 = x6 - x4
+  dy64 = y6 - y4
+  dz64 = z6 - z4
+  l64  = math.sqrt( dx64*dx64 + dy64*dy64 + dz64*dz64 )
+
+  cosa64 = dx64/l64
+  cosb64 = dy64/l64
+  cosg64 = dz64/l64
+
+  A2 = cosb54*cosg64 - cosb64*cosg54
+  B2 = cosg54*cosa64 - cosg64*cosa54
+  C2 = cosa54*cosb64 - cosa64*cosb54
+
+# calculate angle between plane A and B
+  cosphi =  (A1*A2+B1*B2+C1*C2) /math.sqrt((A1*A1+B1*B1+C1*C1)*(A2*A2+B2*B2+C2*C2))
+  return ( math.acos(cosphi)*180/3.1415926535 )
+
+def dist_plp(x1, y1, z1, x2, y2, z2, x3, y3, z3, x0, y0, z0):
+  ''' calculate distance from plane P1-P2-P3 to point P0 '''
+  
+# calculate Hess plane for plane
+  dx21 = x2 - x1
+  dy21 = y2 - y1
+  dz21 = z2 - z1
+  l21  = math.sqrt( dx21*dx21 + dy21*dy21 + dz21*dz21 )
+
+  cosa21 = dx21/l21
+  cosb21 = dy21/l21
+  cosg21 = dz21/l21
+
+  dx31 = x3 - x1
+  dy31 = y3 - y1
+  dz31 = z3 - z1
+  l31  = math.sqrt( dx31*dx31 + dy31*dy31 + dz31*dz31 )
+
+  cosa31 = dx31/l31
+  cosb31 = dy31/l31
+  cosg31 = dz31/l31
+
+  A = cosb21*cosg31 - cosb31*cosg21
+  B = cosg21*cosa31 - cosg31*cosa21
+  C = cosa21*cosb31 - cosa31*cosb21
+
+  p = - ( A*x1 + B*y1 + C*z1 )
+
+  d = ( A*x0 + B*y0 + C*z0 + p ) / math.sqrt( A*A + B*B + C*C )
+  return (d)
+
  
 def calculate_rmsd(conf1, conf2, atoms=None): #pass 2 conformers instead of just the xyz list 
     xyz1 = []

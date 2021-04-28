@@ -21,75 +21,19 @@ def _main():
     A154.assign_pyranose_atoms()
     A154.assign_ring_puckers()
 
-    #testing to see the ring conformations here
-    #print(A154[0].ring)
-    #print(A154[1].ring)
+    #TEST: Dihedral calculation
 
-    #If you want to test out the plotting stuff uncomment these line
-    #return a 2D array of rmsd, rmsd no hydrogen and pendry
-    #rmsd_all_atoms, rmsd_no_hydrogen, pendry_all = return_2d_lists(A154)
-    #make_plots(A154)
-    #generate_heatmap(rmsd_no_hydrogen)
-    #generate_heatmap(pendry_all)
+    for i in range(3):
+        print(A154[i]._id)
+        print(A154[i].dih_atoms)
 
-    print(len(A154[1].IR))
+        for j in A154[i].dih_atoms:
+            at1 = A154[i].xyz[j[0][0]]
+            at2 = A154[i].xyz[j[0][1]]
+            at3 = A154[i].xyz[j[0][2]]
+            at4 = A154[i].xyz[j[0][3]]
 
-    #split the array in half 0-1200 and then 1200-4000, the rest are 0's
-    first_half=1201
-    latter_half=len(A154[0].IR)-first_half
-
-    
-    #the first 1200 data points
-    lower = A154[0].IR[:first_half]
-    #print(rfac(A154[1].IR[:first_half],lower,start=900,stop=1200))
-    #print(rfac(A154[1].IR, A154[0].IR,start=900,stop=1200))
-
-    upper = A154[0].IR[first_half:]
-    #print(rfac(A154[1].IR[first_half:],upper,start=1201,stop=1800))
-    #print(rfac(A154[1].IR, A154[0].IR,start=1201,stop=1800))
-
-    print(A154[1].IR[:first_half])
-    print(A154[1].IR[first_half:])
-    
-    
-    pendry_first_half=[]
-    for d1 in range(len(A154)):
-        pendry_first_half.append([])
-        for d2 in range(len(A154)):
-            pendry_first_half[d1].append(rfac(A154[d1].IR[:first_half],A154[d2].IR[:first_half],start=1000,stop=1200)) 
-    print(pendry_first_half)
-    generate_heatmap(pendry_first_half)
-
-    pendry_other_half=[]
-    for d1 in range(len(A154)):
-        pendry_other_half.append([])
-        for d2 in range(len(A154)):
-            pendry_other_half[d1].append(rfac(A154[d1].IR,A154[d2].IR,start=1201,stop=1800)) 
-    print(pendry_other_half)
-    generate_heatmap(pendry_other_half)
-    
-    
-    A154[0].plot_ir(plot_exp = True, exp_data = lower, scaling_factor = 1)
-    A154[0].plot_ir(plot_exp = True, exp_data = upper, scaling_factor = 1)
-    A154[0].plot_ir(plot_exp = True, exp_data = A154[0].IR, scaling_factor = 1)
-    
-    #I guess I dont really need this
-    '''
-    z = []
-    for i in A154[0].IR[first_half:]:
-        temp=[]
-        temp.append(i[0])
-        temp.append(0)
-        z.append(temp)
-
-    lower = np.concatenate([lower,z])
-    print(A154[0].IR[:1500],len(A154[0].IR))
-    print(lower[:1500],len(lower))
-    A154[0].plot_ir(plot_exp = True, exp_data = A154[0].IR)
-    '''
-    
-
-
+            print(dihedral(at1,at2,at3,at4))
 
 if __name__ == '__main__':
 
