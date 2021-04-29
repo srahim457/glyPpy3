@@ -19,6 +19,7 @@ import re
 from .utilities import *
 import networkx as nx
 from operator import itemgetter, attrgetter
+from collections import deque
 
 class Conformer():
 
@@ -199,12 +200,14 @@ class Conformer():
                 if path[-n] in self.ring_atoms[at].values(): 
                     linker.append(path[-n])
                     linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(linker[-1])])[-1]
-                    #added the O of this ring as a reference atom for the dihedral angle measurement
-                    linker.append(self.ring_atoms[at+1]['O'])
+                    #added the O adj C1 as a reference atom for the phi dihedral angle measurement
+                    linker.insert(0,self.ring_atoms[at+1]['O'])
+                    #added the C3 adj C4 as a reference atom for the psi dihedral angle measurement
+                    linker.append(self.ring_atoms[at]['C3'])
                     #To be added: glycosidic bond configuration + atoms for the dihedral measurement
                     self.dih_atoms.append([linker, 'a1'+linker_type])
-                    #structure of linker is [C1,O (gly-bond),C4,O(adj to C1)]
-                    #consider changing linker to a deque for more intuitive readability with fast addition to the front
+                    #structure of linker is [O(adj to C1),C1,O (gly-bond),C4,C3(adj to C4)]
+                    #consider changing linker to a deque for fast addition to the front
                     break
                 else: linker.append(path[-n])
                 n=n+1

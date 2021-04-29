@@ -30,22 +30,30 @@ def calculate_ring(xyz, ring_atoms):
     phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
     return phi, psi, R
 
+def calculate_dihedral(at1,at2,at3,at4,at5,phi=True, psi=False):
+  if phi==True and psi==True:
+    #
+    print("phi:",dihedral(at1,at2,at3,at4))
+    print("psi:",dihedral(at2,at3,at4,at5))
+  elif psi == True:
+    #
+    print("psi:",dihedral(at2,at3,at4,at5))
+  elif phi == True:
+    #
+    print("phi:",dihedral(at1,at2,at3,at4))
+  else:
+    pass
+
 def dihedral(at1,at2,at3,at4): 
   
-  x1,y1,z1 = at1 #C1
-  x2,y2,z2 = at2 #O gly-bond
-  x3,y3,z3 = at3 #C4
-  x4,y4,z4 = at4 #O adj to C1, used as a reference atom to make the planes
+  x1,y1,z1 = at1
+  x2,y2,z2 = at2 
+  x3,y3,z3 = at3 
+  x4,y4,z4 = at4 
 
-  '''
-  the numbering is not intuitive here, want to make a plane with three atoms 
-  O - C1 - O(gly-bond) : x4,y4,z4,x1,y1,z1,x2,y2,z2
-  C1 - O(gly-bond) - C4 : x1,y1,z1,x2,y2,z2,x3,y3,z3
-  '''
-  _dihedral=angle_pp(x4,y4,z4,x1,y1,z1,x2,y2,z2,x1,y1,z1,x2,y2,z2,x3,y3,z3)
+  _dihedral=angle_pp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x2,y2,z2,x3,y3,z3,x4,y4,z4)
   
-  #parameters are passed differently for similar reasoning to above
-  if dist_plp(x4,y4,z4,x1,y1,z1,x2,y2,z2,x3,y3,z3) < 0: 
+  if dist_plp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4) < 0: 
     return -_dihedral
   else:
     return _dihedral
@@ -104,7 +112,7 @@ def angle_pp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6):
 
 def dist_plp(x1, y1, z1, x2, y2, z2, x3, y3, z3, x0, y0, z0):
   ''' calculate distance from plane P1-P2-P3 to point P0 '''
-  
+
 # calculate Hess plane for plane
   dx21 = x2 - x1
   dy21 = y2 - y1
