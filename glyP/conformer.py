@@ -14,7 +14,7 @@
 
 
 import numpy as np
-import re
+import re, os 
 #from utilities import * 
 from .utilities import *
 import networkx as nx
@@ -23,8 +23,44 @@ from collections import deque
 
 class Conformer():
 
-    def __init__(self, file_path):
+    def __init__(self, _id):
 
+        self._id = _id 
+
+    def create_input(self, theory):
+
+
+        
+
+
+        if theory['disp'] == False:
+            theory['disp'] = ' '
+        else: 
+            theory['disp'] = 'EmpiricalDispersion=GD3'
+
+        input_file = 'input.com'
+        f = open(input_file, 'w')
+        f.write('%nproc=' + str(theory['nprocs'])+'\n')
+        f.write('%mem='+theory['mem']+'\n')
+        f.write(' '.join(['#P', theory['method'], theory['basis_set'],  theory['jobtype'], theory['other_options'], theory['disp'], '\n']))
+        f.write('\n')
+        f.write(self._id + '\n')
+        f.write('\n ')
+        f.write(str(theory['charge']) + ' ' + str(theory['multiplicity']) + '\n')
+        for at, xyz in zip(self.atoms, self.xyz):
+            line = '{0:5s} {1:10.3f} {2:10.3f} {3:10.3f}\n'.format(at, xyz[0], xyz[1], xyz[2])
+            f.write(line)
+        f.write(' ')
+        f.close()
+
+    def load_log(self, file_path):
+
+        #try:
+        #    logfile = open(file_path, 'r')
+        #except IOError: 
+        #    print("%30s not accessible", file_path)
+        #    return 1 
+            
         normal_mode_flag=False
         freq_flag = False
         read_geom = False
@@ -56,16 +92,13 @@ class Conformer():
                      continue
 
                 elif normal_mode_flag == True and re.search('^\s*\d*\s*.\d*', line) and len(line.split()) > 3:
-                     #mode_1.append(map(float, line.split()[2:5]))
-                     #mode_2.append(map(float, line.split()[5:8]))
-                     #mode_3.append(map(float, line.split()[8:11]))
-                     #replaced the maps with list parseing
+
                      mode_1.append([float(x) for x in line.split()[2:5]])
                      mode_2.append([float(x) for x in line.split()[5:8]])
                      mode_3.append([float(x) for x in line.split()[8:11]])
-                     
 
                 elif normal_mode_flag == True: 
+
                      normal_mode_flag = False 
                      for m in [mode_1, mode_2, mode_3]: vibs.append(np.array(m))
 
@@ -214,7 +247,7 @@ class Conformer():
         #adding the Oxygen bonded to the C1 in the glycocidic bond as a reference for the dihedral measurement
         
 
-    def create_ga_vector(self ):
+    def create_ga_vector(self):
 
         self.ga_vectorR = []
         for ring in self.ring_angle:
@@ -268,7 +301,7 @@ class Conformer():
         plt.savefig(self._id+'.png', dpi=200)
 
 
-    def plot_ir2(self,  xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None, exp_int_split = False, normal_modes=False):
+    def plot_ir2(self,  xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None, exp_int_split=False, normal_modes=False):
 
         import matplotlib.pyplot as plt
         from matplotlib.ticker import NullFormatter
