@@ -12,7 +12,8 @@ import networkx as nx
 def _main():
     
     print ("package initialized")
-    A154 = Space('Tri_A154')
+    A154 = Space()
+    A154.load_dir('Tri_A154')
     A154.gaussian_broadening(broaden=5)
     A154.reference_to_zero(energy_function='F')
     #print (A154)

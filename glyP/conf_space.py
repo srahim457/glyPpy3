@@ -80,7 +80,8 @@ class Space(list):
 
         ''' Performs gaussian broadening for the set''' 
 
-        for conf in self: conf.gaussian_broadening(broaden, resolution=self.ir_resolution)
+        #for conf in self: conf.gaussian_broadening(broaden, resolution=self.ir_resolution)
+        for conf in self: conf.gaussian_broadening(broaden, resolution=1)
                    
     def reference_to_zero(self, energy_function='E'):
 

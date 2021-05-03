@@ -30,6 +30,7 @@ def calculate_ring(xyz, ring_atoms):
     phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
     return phi, psi, R
 
+#get rid of this
 def calculate_dihedral(at1,at2,at3,at4,at5,phi=True, psi=False):
   if phi==True and psi==True:
     #
@@ -45,6 +46,8 @@ def calculate_dihedral(at1,at2,at3,at4,at5,phi=True, psi=False):
     pass
 
 def dihedral(at1,at2,at3,at4): 
+
+  #pass the coordinate list directly, dont split here
   
   x1,y1,z1 = at1
   x2,y2,z2 = at2 
@@ -61,19 +64,24 @@ def dihedral(at1,at2,at3,at4):
 def angle_pp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6):
 
 # calculate Hess plane for plane A
+
   dx21 = x2 - x1
   dy21 = y2 - y1
   dz21 = z2 - z1
   l21  = math.sqrt( dx21*dx21 + dy21*dy21 + dz21*dz21 )
+  
+
 
   cosa21 = dx21/l21
   cosb21 = dy21/l21
   cosg21 = dz21/l21
 
+  
   dx31 = x3 - x1
   dy31 = y3 - y1
   dz31 = z3 - z1
   l31  = math.sqrt( dx31*dx31 + dy31*dy31 + dz31*dz31 )
+  
 
   cosa31 = dx31/l31
   cosb31 = dy31/l31
