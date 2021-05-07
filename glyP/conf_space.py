@@ -78,10 +78,12 @@ class Space(list):
 
         ''' Performs gaussian broadening for the set''' 
 
-        #!!! lambda: if no experimental set self.ir_res = 1
-        
-        #for conf in self: conf.gaussian_broadening(broaden, resolution=self.ir_resolution)
-        for conf in self: conf.gaussian_broadening(broaden, resolution=1)
+        #checks if self.ir_resolution exists in the object, it would only exist if load_exp is called
+        #works when no load_exp is called, need to test with load_exp
+        if hasattr(self, 'self.ir_resolution'):
+            for conf in self: conf.gaussian_broadening(broaden, resolution=self.ir_resolution)
+        else:
+            for conf in self: conf.gaussian_broadening(broaden, resolution=1)
                    
     def reference_to_zero(self, energy_function='E'):
 
