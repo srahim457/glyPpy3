@@ -1,5 +1,4 @@
 import math
-#import calc_cp, rmsd
 from . import calc_cp
 from . import rmsd
 import numpy as np
@@ -47,21 +46,21 @@ def calculate_dihedral(at1,at2,at3,at4,at5,phi=True, psi=False):
 
 def dihedral(at1,at2,at3,at4): 
 
-  #pass the coordinate list directly, dont split here
+  _dihedral=angle_pp(at1,at2,at3,at2,at3,at4)
   
-  x1,y1,z1 = at1
-  x2,y2,z2 = at2 
-  x3,y3,z3 = at3 
-  x4,y4,z4 = at4 
-
-  _dihedral=angle_pp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x2,y2,z2,x3,y3,z3,x4,y4,z4)
-  
-  if dist_plp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4) < 0: 
+  if dist_plp(at1,at2,at3,at4) < 0: 
     return -_dihedral
   else:
     return _dihedral
 
-def angle_pp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6):
+def angle_pp(at1,at2,at3,at4,at5,at6):
+
+  x1,y1,z1 = at1
+  x2,y2,z2 = at2 
+  x3,y3,z3 = at3 
+  x4,y4,z4 = at4 
+  x5,y5,z5 = at5
+  x6,y6,z6 = at6
 
 # calculate Hess plane for plane A
 
@@ -70,7 +69,6 @@ def angle_pp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6):
   dz21 = z2 - z1
   l21  = math.sqrt( dx21*dx21 + dy21*dy21 + dz21*dz21 )
   
-
 
   cosa21 = dx21/l21
   cosb21 = dy21/l21
@@ -118,8 +116,13 @@ def angle_pp(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6):
   cosphi =  (A1*A2+B1*B2+C1*C2) /math.sqrt((A1*A1+B1*B1+C1*C1)*(A2*A2+B2*B2+C2*C2))
   return ( math.acos(cosphi)*180/3.1415926535 )
 
-def dist_plp(x1, y1, z1, x2, y2, z2, x3, y3, z3, x0, y0, z0):
+def dist_plp(at1, at2, at3, at0):
   ''' calculate distance from plane P1-P2-P3 to point P0 '''
+
+  x1,y1,z1 = at1
+  x2,y2,z2 = at2 
+  x3,y3,z3 = at3 
+  x0,y0,z0 = at0 
 
 # calculate Hess plane for plane
   dx21 = x2 - x1

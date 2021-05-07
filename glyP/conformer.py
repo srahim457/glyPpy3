@@ -15,7 +15,6 @@
 
 import numpy as np
 import re, os 
-#from utilities import * 
 from .utilities import *
 import networkx as nx
 from operator import itemgetter, attrgetter
@@ -28,10 +27,6 @@ class Conformer():
         self._id = _id 
 
     def create_input(self, theory):
-
-
-        
-
 
         if theory['disp'] == False:
             theory['disp'] = ' '
@@ -237,13 +232,13 @@ class Conformer():
                     #added the O adj C1 as a reference atom for the phi dihedral angle measurement
                     linker.insert(0,self.ring_atoms[at1]['O'])
                     #added the C3 adj C4 as a reference atom for the psi dihedral angle measurement
-                    lower_carbon = 'C'+str(int(linker_type)-1)
-                    linker.append(self.ring_atoms[at][lower_carbon])
+                    C_phi = 'C'+str(int(linker_type)-1)
+                    linker.append(self.ring_atoms[at][C_phi])
                     #To be added: glycosidic bond configuration + atoms for the dihedral measurement
                     self.dih_atoms.append([linker, 'a1'+linker_type])
                     #structure of linker is [O(adj to C1),C1,O (gly-bond),C4,C3(adj to C4)]
                     #consider changing linker to a deque for fast addition to the front
-                    #add two dihedral angles to the conformer
+                    #add two dihedral angles to the conformer, append to self.dih_atoms
                     break
                 else: linker.append(path[-n])
                 n=n+1

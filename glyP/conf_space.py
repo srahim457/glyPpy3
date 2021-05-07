@@ -1,8 +1,6 @@
 import os, sys
 import numpy as np
-#from conformer import *
 from .conformer import *
-#from utilities import *
 from .utilities import *
 from copy import copy as cp
 
@@ -80,6 +78,8 @@ class Space(list):
 
         ''' Performs gaussian broadening for the set''' 
 
+        #!!! lambda: if no experimental set self.ir_res = 1
+        
         #for conf in self: conf.gaussian_broadening(broaden, resolution=self.ir_resolution)
         for conf in self: conf.gaussian_broadening(broaden, resolution=1)
                    
