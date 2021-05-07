@@ -42,7 +42,8 @@ def calculate_dihedral(at1,at2,at3,at4,at5,phi=True, psi=False):
     #
     print("phi:",dihedral(at1,at2,at3,at4))
   else:
-    pass
+    pass 
+
 
 def dihedral(at1,at2,at3,at4): 
 

@@ -130,3 +130,10 @@ class Space(list):
                 phi, psi, R = calculate_ring(conf.xyz, r)
                 conf.ring.append(R) ; conf.ring_angle.append([phi, psi])
 
+    def measure_dih(self,conf,set_atoms):
+        for i in self:
+            if i._id == conf:
+                at1 = i.xyz[set_atoms[0]]; at2 = i.xyz[set_atoms[1]]; at3 = i.xyz[set_atoms[2]]; at4 = i.xyz[set_atoms[3]]; at5 = i.xyz[set_atoms[4]];
+                return(dihedral(at1,at2,at3,at4),dihedral(at2,at3,at4,at5))
+
+
