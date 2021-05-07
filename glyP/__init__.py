@@ -25,17 +25,6 @@ def _main():
         print(A154[i]._id)
         print(A154[i].dih_atoms)
 
-        for j in A154[i].dih_atoms:
-            at1 = A154[i].xyz[j[0][0]]
-            at2 = A154[i].xyz[j[0][1]]
-            at3 = A154[i].xyz[j[0][2]]
-            at4 = A154[i].xyz[j[0][3]]
-            at5 = A154[i].xyz[j[0][4]]
-
-            phi = True
-            psi = True
-            calculate_dihedral(at1,at2,at3,at4,at5,phi,psi)
-
     print(A154.measure_dih('Tri_A154_0001', [17, 16, 21, 22, 23]))
 
 if __name__ == '__main__':

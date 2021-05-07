@@ -29,22 +29,6 @@ def calculate_ring(xyz, ring_atoms):
     phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
     return phi, psi, R
 
-#get rid of this
-def calculate_dihedral(at1,at2,at3,at4,at5,phi=True, psi=False):
-  if phi==True and psi==True:
-    #
-    print("phi:",dihedral(at1,at2,at3,at4))
-    print("psi:",dihedral(at2,at3,at4,at5))
-  elif psi == True:
-    #
-    print("psi:",dihedral(at2,at3,at4,at5))
-  elif phi == True:
-    #
-    print("phi:",dihedral(at1,at2,at3,at4))
-  else:
-    pass 
-
-
 def dihedral(at1,at2,at3,at4): 
 
   _dihedral=angle_pp(at1,at2,at3,at2,at3,at4)
