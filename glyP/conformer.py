@@ -255,7 +255,20 @@ class Conformer():
         for ring in self.ring_angle:
             self.ga_vectorR.append([ring[0], ring[1]])
         self.ga_vectorD = []
-        
+
+    def show_xyz(self, width=400, height=400):
+
+
+        import py3Dmol as p3D
+
+        XYZ = "84\n{0:s}\n".format(self._id)
+        for at, xyz in zip(self.atoms, self.xyz):
+            XYZ += "{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] )
+        xyzview = p3D.view(width=width,height=height)
+        xyzview.addModel(XYZ,'xyz')
+        xyzview.setStyle({'stick':{}})
+        xyzview.zoomTo()
+        xyzview.show()
 
     def plot_ir(self, xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None):
 
@@ -344,9 +357,10 @@ class Conformer():
                 scale_expH= scale_t * np.amax(self.IR[int(1200/incr):int(xmax/incr)+100,1]) /(np.amax(np.where(exp_data[:,0] > 1200, 0, exp_data[:,1])))
                 split_wn = np.where(exp_data[:,0] == 1200) ; split_wn = split_wn[0][0]
                 ax.plot(exp_data[:split_wn,0], exp_data[:split_wn,1]*scale_expL+shift, color='r', alpha=0.75, linewidth=2)
+                ax.fill_between(exp_data[:split_wn,0], exp_data[:split_wn,1]*scale_expL+shift, np.linspace(shift,shift, len(exp_data[:split_wn,1])), color='r', alpha=0.5)
 
                 ax.plot(exp_data[split_wn:,0], exp_data[split_wn:,1]*scale_expH+shift, color='r', alpha=0.75, linewidth=2)
-                #ax.fill_between(exp_data[:,0], exp_data[:,1]*scale_expL+shift, np.linspace(shift,shift, len(exp_data[:,1])), color='r', alpha=0.5)
+                ax.fill_between(exp_data[split_wn:,0], exp_data[split_wn:,1]*scale_expH+shift, np.linspace(shift,shift, len(exp_data[split_wn:,1])), color='r', alpha=0.5)
 
         Xsc = self.IR[:,0]* scaling_factor ; IRsc = self.IR[:,1]*scale_t
         ir_theo = ax.plot(Xsc, IRsc+shift, color='0.25', linewidth=2)
