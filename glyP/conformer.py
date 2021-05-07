@@ -230,15 +230,17 @@ class Conformer():
                     #number of the other carbon
                     linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(linker[-1])])[-1]
                     #added the O adj C1 as a reference atom for the phi dihedral angle measurement
+                    #consider changing linker to a deque for fast addition to the front
                     linker.insert(0,self.ring_atoms[at1]['O'])
                     #added the C3 adj C4 as a reference atom for the psi dihedral angle measurement
                     C_phi = 'C'+str(int(linker_type)-1)
                     linker.append(self.ring_atoms[at][C_phi])
-                    #To be added: glycosidic bond configuration + atoms for the dihedral measurement
-                    self.dih_atoms.append([linker, 'a1'+linker_type])
                     #structure of linker is [O(adj to C1),C1,O (gly-bond),C4,C3(adj to C4)]
-                    #consider changing linker to a deque for fast addition to the front
-                    #add two dihedral angles to the conformer, append to self.dih_atoms
+                    
+                    at1 = self.xyz[linker[0]]; at2 = self.xyz[linker[1]]; at3 = self.xyz[linker[2]]; at4 = self.xyz[linker[3]]; at5 = self.xyz[linker[4]];
+                    phi = dihedral(at1,at2,at3,at4)
+                    psi = dihedral(at2,at3,at4,at5)
+                    self.dih_atoms.append([linker, 'a1'+linker_type, phi, psi])
                     break
                 else: linker.append(path[-n])
                 n=n+1
