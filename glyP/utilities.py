@@ -6,7 +6,6 @@ import sys
 from scipy import interpolate
 from optparse import OptionParser
 
-
 def error(msg):
    """ write error message and quit
    """
@@ -154,6 +153,7 @@ def calculate_rmsd(conf1, conf2, atoms=None): #pass 2 conformers instead of just
       xyz2 = conf2.xyz
 
     return rmsd.rmsd_qcp(xyz1, xyz2)
+
 
 def deriv(spec,h):
    """ calculate first derivative of function 'spec'
