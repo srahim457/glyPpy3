@@ -24,8 +24,7 @@ def _main():
     for i in range(3):
         print(A154[i]._id)
         print(A154[i].dih_atoms)
-
-    print(A154.measure_dih('Tri_A154_0001', [17, 16, 21, 22, 23]))
+    print("test index 0:",measure_dih(A154,0, [17, 16, 21, 22, 23]))
 
 if __name__ == '__main__':
 

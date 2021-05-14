@@ -236,13 +236,7 @@ class Conformer():
                     C_phi = 'C'+str(int(linker_type)-1)
                     linker.append(self.ring_atoms[at][C_phi])
                     #structure of linker is [O(adj to C1),C1,O (gly-bond),C4,C3(adj to C4)]
-                    
-                    #!!! merge dihedral and measure_dihedral, and move to utilities
-
-                    at1 = self.xyz[linker[0]]; at2 = self.xyz[linker[1]]; at3 = self.xyz[linker[2]]; at4 = self.xyz[linker[3]]; at5 = self.xyz[linker[4]];
-                    phi = dihedral(at1,at2,at3,at4)
-                    psi = dihedral(at2,at3,at4,at5)
-                    self.dih_atoms.append([linker, 'a1'+linker_type, [phi,psi]])
+                    self.dih_atoms.append([linker, 'a1'+linker_type])
                     break
                 else: linker.append(path[-n])
                 n=n+1
