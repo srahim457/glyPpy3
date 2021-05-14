@@ -28,14 +28,31 @@ def calculate_ring(xyz, ring_atoms):
     phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
     return phi, psi, R
 
-def dihedral(at1,at2,at3,at4): 
+def measure_dih(conf_space,conf,set_atoms):
+  '''conf_space is the object, 
+  conf is an index of conformer in the object, 
+  set_atoms is a list of ints which are indices of the atom in conformer 
+  Return: a list of dih angles phi and psi
+  '''
 
-  _dihedral=angle_pp(at1,at2,at3,at2,at3,at4)
+  at1 = conf_space[conf].xyz[set_atoms[0]]; at2 = conf_space[conf].xyz[set_atoms[1]]; at3 = conf_space[conf].xyz[set_atoms[2]]; at4 = conf_space[conf].xyz[set_atoms[3]]; at5 = conf_space[conf].xyz[set_atoms[4]];
+
+  phi_dihedral=angle_pp(at1,at2,at3,at2,at3,at4)
+  psi_dihedral=angle_pp(at2,at3,at4,at3,at4,at5)
+
+  dihedral_angles=[]
   
   if dist_plp(at1,at2,at3,at4) < 0: 
-    return -_dihedral
+    dihedral_angles.append(-phi_dihedral)
   else:
-    return _dihedral
+    dihedral_angles.append(phi_dihedral)
+
+  if dist_plp(at1,at2,at3,at4) < 0: 
+    dihedral_angles.append(-psi_dihedral)
+  else:
+    dihedral_angles.append(psi_dihedral)
+
+  return(dihedral_angles)
 
 def angle_pp(at1,at2,at3,at4,at5,at6):
 
