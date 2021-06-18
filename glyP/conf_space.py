@@ -3,6 +3,8 @@ import numpy as np
 from .conformer import *
 from .utilities import *
 from copy import copy as cp
+import networkx as nx
+from operator import itemgetter, attrgetter
 
 class Space(list):
 
@@ -17,10 +19,15 @@ class Space(list):
     _kT=0.0019872036*_temp #boltzmann
     _Ha2kcal=627.5095  
 
-    def __init__(self):
+    def __init__(self, path):
+
+        self.path = path
+        try: os.makedirs(self.path)
+        except: 
+            print("directory already exists")
+            sys.exit(1)
 
         pass
-
 
     def __str__(self):
          
@@ -31,16 +38,16 @@ class Space(list):
             print ("%20s%20.2f%20.2f%20.2f" %(conf._id, conf.E*self._Ha2kcal, conf.H*self._Ha2kcal, conf.F*self._Ha2kcal))
         return ''
 
-    def load_dir(self, molecule):
+    def load_dir(self, path):
 
-        for (root, dirs, files) in os.walk('./'+molecule):
+        for (root, dirs, files) in os.walk('./'+path):
             for dirname in dirs:
                 print (dirname)
-                for ifiles in os.walk(molecule+'/'+dirname):
+                for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.log'):
                             conf = Conformer('dummy')
-                            conf.load_log(molecule+'/'+dirname+'/'+filename)
+                            conf.load_log(path+'/'+dirname+'/'+filename)
                             self.append(conf)
 
     def load_exp(self, path, ir_resolution=1.0):
@@ -49,6 +56,37 @@ class Space(list):
         expIR= np.genfromtxt(path)
         new_grid = np.arange(np.ceil(expIR[0,0]), np.floor(expIR[-1,0]), self.ir_resolution)
         self.expIR = np.vstack((new_grid, interpolate.griddata(expIR[:,0], expIR[:,1], new_grid, method='cubic'))).T #espec - experimental spectrum
+
+    def load_models(self, path):
+
+        self.models = []
+        for (root, dirs, files) in os.walk('./'+path):
+            for dirname in dirs:
+                for ifiles in os.walk(path+'/'+dirname):
+                    for filename in ifiles[2]:
+                        if filename.endswith('.xyz'):
+                            conf = Conformer('dummy')
+                            conf.load_model(path+'/'+dirname+'/'+filename)
+                            self.models.append(conf)
+        self.Nmodels = len(self.models)
+
+        for conf in self.models:
+            print("Analyze {0:10s}".format(conf._id))
+            conf.ring = [] ; conf.ring_angle = [] ; conf.dih_angle = []
+ 
+            conf.connectivity_matrix(distXX=1.6, distXH=1.2)
+            conf.assign_atoms()
+
+            for r in conf.ring_atoms:                                               
+                phi, psi, R = calculate_ring(conf.xyz, r)
+                conf.ring.append(R) ; conf.ring_angle.append([phi, psi])    
+
+            for d in conf.dih_atoms:
+
+                atoms = sort_linkage_atoms(d)
+                phi, ax = measure_dihedral(conf, atoms[:4])
+                psi, ax = measure_dihedral(conf, atoms[1:5])
+                conf.dih_angle.append([phi, psi])
 
     def set_theory(self, **kwargs):
 
@@ -108,32 +146,21 @@ class Space(list):
         distXH - cutoff distance between heavy at - hydrogen '''
 
         print('creating connectivity matrix')
-        for conf in self: conf.connectivity_matrix(distXX=1.6, distXH=1.2)
+        for conf in self: conf.connectivity_matrix(distXX, distXH)
 
-    def assign_pyranose_atoms(self): #2
+    def assign_atoms(self): #2
 
-        import networkx as nx
-        print('assigning pyranose atoms')
-        for conf in self: conf.assign_ring_atoms()
+        print('assigning atoms')
+        for conf in self: conf.assign_atoms()
 
-        #this is not very efficient, but making a single utility function for measure_dih made it hard to add dihedral angle measures to the dih_atoms when assigning rings. 
-        #Thats why this loop here just calculates dih aangle and appends it to each list in dih_atoms for every conformer in the space
-        for index, conf in enumerate(self):
-            for i in conf.dih_atoms:
-                i.append(measure_dih(self,index,i[0]))
 
     def assign_ring_puckers(self): #3
 
-        ''' assign rings to each conformer '''
-
-        #try: self.ring (rings??)
-        #except AttributeError: print "find ring_atoms first" ; sys.quit()
-
         print('assigning rings')
+        for conf in self: conf.measure_ring() 
 
-        for conf in self: 
-            conf.ring = []
-            conf.ring_angle = []
-            for r in conf.ring_atoms:
-                phi, psi, R = calculate_ring(conf.xyz, r)
-                conf.ring.append(R) ; conf.ring_angle.append([phi, psi])
+    def assign_glycosidic_angles(self):
+
+        print('assigning dihs')
+        for conf in self: conf.measure_glycosidic()
+

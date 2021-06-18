@@ -14,11 +14,11 @@
 
 
 import numpy as np
-import re, os 
+import re, os
+from subprocess import Popen, PIPE
 from .utilities import *
 import networkx as nx
 from operator import itemgetter, attrgetter
-from collections import deque
 
 class Conformer():
 
@@ -26,14 +26,39 @@ class Conformer():
 
         self._id = _id 
 
-    def create_input(self, theory):
+    def load_model(self, file_path):
 
-        if theory['disp'] == False:
-            theory['disp'] = ' '
-        else: 
+        self.NAtoms = None
+        self._id    = str(file_path).split('/')[1]
+        geom = [] ; atoms = []
+
+        for n, line in enumerate(open(file_path, 'r').readlines()):
+
+            if n == 0 and self.NAtoms == None: self.NAtoms = int(line)
+            if n > 1:
+                 if len(line.split()) == 0: break 
+                 geom.append([float(x) for x in line.split()[1:4]])
+                 atoms.append(element_symbol(line.split()[0]))
+                 #atoms.append(line.split()[0])
+
+        self.xyz = np.array(geom)
+        self.atoms = atoms
+
+    def create_input(self, theory, output):
+
+        if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3':
             theory['disp'] = 'EmpiricalDispersion=GD3'
+        else: 
+            theory['disp'] = ' ' 
+        try:
+            outdir = '/'.join([output, self._id])
+            os.makedirs(outdir)
+            self.outdir = outdir
+        except: 
+            print("id already exists")
+            sys.exit(1)
 
-        input_file = 'input.com'
+        input_file = outdir + '/input.com'
         f = open(input_file, 'w')
         f.write('%nproc=' + str(theory['nprocs'])+'\n')
         f.write('%mem='+theory['mem']+'\n')
@@ -47,6 +72,20 @@ class Conformer():
             f.write(line)
         f.write(' ')
         f.close()
+
+    def run_gaussian(self):
+
+        try: hasattr(self, 'outdir')
+        except:
+            print("Create input first")
+            sys.exit(1)
+
+        cwd=os.getcwd(); os.chdir(self.outdir)
+        with open('input.log', 'w') as out: 
+            gauss_job = Popen("g16 input.com ", shell=True, stdout=out, stderr=out)
+            gauss_job.wait()
+
+        os.chdir(cwd)
 
     def load_log(self, file_path):
 
@@ -135,11 +174,17 @@ class Conformer():
        print ("%30s            NAtoms=%5d" %(self._id, self.NAtoms))
        print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
        if hasattr(self, 'rings'):
-           for n in range(len(self.ring)):
-                print ("Ring%3d:%5s phi/psi%6.1f/%6.1f" %(n, self.ring[n], self.ring_angle[n][0], self.ring_angle[n][1]), end='')
-                for at in ['C1', 'C2', 'C3', 'C4', 'C5', 'O' ]: 
-                    print ("%3s:%3s" %(at, self.ring_atoms[n][at]), end='')
-                print()
+            for n in range(len(self.ring)):
+                print ("Ring {0:3d}{1:5s}    {2:6.1f} {3:6.1f}".format(n, self.ring[n], self.ring_angle[n][0], self.ring_angle[n][1]), end='')
+       if hassattr(self, 'dih_angle'):
+            for d in range(len(self.dih_angle)):
+                if len(d) == 2: 
+                    print ("Linkage: {0:5s}  {1:6.1f} {2:6.1f}".format(self.dih[d], self.dih_angle[d][0], self.dih_angle[1]), end='' )
+                elif len(d) == 3: 
+                    print ("Linkage: {0:5s}  {1:6.1f} {2:6.1f} {3:6.1f}".format(self.dih[d], self.dih_angle[d][0], self.dih_angle[1], self.dih_angle[2]), end='' )                    
+                #for at in ['C1', 'C2', 'C3', 'C4', 'C5', 'O' ]: 
+                #    print ("%3s:%3s" %(at, self.ring_atoms[n][at]), end='')
+                #print()
 
        return ' '
 
@@ -173,7 +218,7 @@ class Conformer():
                     if dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
                 elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
 
-    def assign_ring_atoms(self):
+    def assign_atoms(self):
 
 
         cm = nx.graph.Graph(self.conn_mat)
@@ -218,40 +263,89 @@ class Conformer():
 
         #identify bonds:
         #1. Create shortest paths between anomeric carbons to get O's and bond types.
+        
         C1s = [ x['C1'] for x in self.ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
-        self.dih_atoms = []
+        self.dih_atoms = [] ; self.dih = [] 
+
         for at in range(len(C1s)-1):
+
+            self.dih_atoms.append({})
             at1 = at+1 
             path = nx.shortest_path(cm, C1s[at], C1s[at1])
-            n=2 ; linker = [ C1s[at1] ]
+            n=2 ; 
+            self.dih_atoms[at]['C1l'] = C1s[at1]
+            self.dih_atoms[at]['O']  = self.ring_atoms[at1]['O']
+
             while n < len(path):
                 if path[-n] in self.ring_atoms[at].values(): 
-                    linker.append(path[-n])
-                    #number of the other carbon
-                    linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(linker[-1])])[-1]
-                    #added the O adj C1 as a reference atom for the phi dihedral angle measurement
-                    #consider changing linker to a deque for fast addition to the front
-                    linker.insert(0,self.ring_atoms[at1]['O'])
-                    #added the C3 adj C4 as a reference atom for the psi dihedral angle measurement
+                    linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(path[-n])])[-1]
+                    self.dih_atoms[at]['C'+linker_type+'l'] = path[-n]
                     C_phi = 'C'+str(int(linker_type)-1)
-                    linker.append(self.ring_atoms[at][C_phi])
-                    #structure of linker is [O(adj to C1),C1,O (gly-bond),C4,C3(adj to C4)]
-                    self.dih_atoms.append([linker, 'a1'+linker_type])
+                    if linker_type == 5: linker_type += 1 
+                    self.dih_atoms[at][C_phi] = self.ring_atoms[at][C_phi]
                     break
-                else: linker.append(path[-n])
+                else: 
+                    if n == 2: 
+                        self.dih_atoms[at]['Ol']  = path[-n]
+                    elif n == 3: 
+                        self.dih_atoms[at]['C6']  = path[-n]
                 n=n+1
-        #adding the Oxygen bonded to the C1 in the glycocidic bond as a reference for the dihedral measurement
-        
 
-    def create_ga_vector(self):
+            dih = self.dih_atoms[at] 
+            adj = adjacent_atoms(self.conn_mat, dih['C1l']) 
+            for at in adj:
+                if self.atoms[at] == 'H': 
+                    list_of_atoms = [ dih['O'], dih['C1l'], dih['Ol'], at ] 
+            idih = measure_dihedral( self, list_of_atoms )[0] 
+            if idih < 0.0: self.dih.append('b1'+linker_type)
+            else: self.dih.append('a1'+linker_type)
+ 
+        #determine anomaricity of the redicing end: 
+        adj = adjacent_atoms(self.conn_mat, self.ring_atoms[0]['C1'])
+        for at in adj:
+            if self.atoms[at] == 'H': Ha = at
+            if self.atoms[at] == 'O' and at not in self.ring_atoms[0].values(): O = at
+        list_of_atoms = [ self.ring_atoms[0]['O'], self.ring_atoms[0]['C1'], O, Ha] 
+        idih = measure_dihedral( self, list_of_atoms )[0]
+        if idih < 0.0: self.anomer = 'beta'
+        else: self.anomer = 'alpha'
 
-        self.ga_vectorR = []
+        #print (self.dih_atoms, self.dih, self.anomer)
+
+    def measure_glycosidic(self):
+
+        self.dih_angle = []
+        for d in self.dih_atoms:
+            atoms = sort_linkage_atoms(d)
+            phi, ax = measure_dihedral(self, atoms[:4])
+            psi, ax = measure_dihedral(self, atoms[1:5])
+            self.dih_angle.append([phi, psi])
+
+    def set_glycosidic(self, bond, phi, psi, omega=None):
+
+        atoms = sort_linkage_atoms(self.dih_atoms[bond])
+        set_dihedral(self, atoms[:4], phi)
+        set_dihedral(self, atoms[1:5], psi)
+        if omega != None: 
+            set_dihedral(self, atoms[2:], omega)
+
+    def measure_ring(self):
+
+        self.ring = []
+        self.ring_angle = []
+        for r in self.ring_atoms:
+            phi, psi, R = calculate_ring(self.xyz, r)
+            self.ring.append(R) ; self.ring_angle.append([phi, psi])
+
+    def update_vector(self):
+
+        self.ga_vector = []
+        for dih in self.dih_angle:
+            self.ga_vector.append([dih[0],dih[1]])
         for ring in self.ring_angle:
-            self.ga_vectorR.append([ring[0], ring[1]])
-        self.ga_vectorD = []
+            self.ga_vector.append([ring[0], ring[1]])
 
     def show_xyz(self, width=400, height=400):
-
 
         import py3Dmol as p3D
 
