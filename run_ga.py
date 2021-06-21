@@ -35,7 +35,7 @@ while n < GAsettings['initial_pool']:
 
     GArun[n].create_input(GArun.theory, GArun.path)
     GArun[n].run_gaussian()
-    GArun[n].load_log('/'.join([GArun.path, GArun[n]._id]))
+    GArun[n].load_log('/'.join([GArun.path, GArun[n]._id, 'input.log']))
     GArun[n].udate_vector()
 
     GArun.sort_energy(energy_function='E')
@@ -68,7 +68,7 @@ while n < GAsetting['generations']:
     
     GArun[N].create_input(GArun.theory, GArun.path)
     GArun[N].run_gaussian()
-    GArun[N].load_log('/'.join([GArun.path, GArun[N]._id]))
+    GArun[N].load_log('/'.join([GArun.path, GArun[N]._id, 'input.log']))
     GArun[N].udate_vector()
 
 

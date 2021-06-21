@@ -102,10 +102,26 @@ class Conformer():
         #temprorary variables to hold the data
         freq = [] ; ints = [] ; vibs = [] ; geom = [] ; atoms = []
 
+        job_opt = False ; job_freq = False ; job_optfreq = False ; job_sp = False ; job = 0
+
         self.NAtoms = None
         self._id    = str(file_path).split('/')[1]
 
-        for line in open(file_path, 'r').readlines():                     
+        for line in open(file_path, 'r').readlines():
+
+                if re.search('^ #', line) and job == 0:
+                    if "opt" in line:
+
+                        if "freq" in line: 
+                            job_optfreq = True ; job += 1 
+                            print("Reading optfreq")
+                        else: 
+                            job_opt = True ; job += 1 
+                            print("Reading opt")
+                    elif "freq" in line: 
+                            job_optfreq = True ; freq_flag = True ;  job += 1 
+                            print("Reading freq")
+                    else: job_sp = True ; job += 1 
 
                 if self.NAtoms == None and re.search('^ NAtoms=', line): 
                     self.NAtoms = int(line.split()[1])
@@ -136,36 +152,49 @@ class Conformer():
                      normal_mode_flag = False 
                      for m in [mode_1, mode_2, mode_3]: vibs.append(np.array(m))
 
-                elif freq_flag == False and re.search('Normal termination', line): freq_flag = True
 
-                elif freq_flag == True and re.search('SCF Done',   line): self.E = float(line.split()[4])
-                elif freq_flag == True and re.search('Sum of electronic and zero-point Energies',   line): self.Ezpe = float(line.split()[6])
-                elif freq_flag == True and re.search('Sum of electronic and thermal Enthalpies' ,   line): self.H    = float(line.split()[6])                    
-                elif freq_flag == True and re.search('Sum of electronic and thermal Free Energies', line): self.F    = float(line.split()[7])
+                if job_optfreq == True:
 
-                elif freq_flag == True and re.search('Coordinates', line) : read_geom = True
-                elif freq_flag == True and read_geom == True and re.search('^\s*.\d', line):
-                     #geom.append(map(float, line.split()[3:6])) 
-                     #convert to a parse directly into list rather than map
-                     geom.append([float(x) for x in line.split()[3:6]])
-                     atoms.append(element_symbol(line.split()[1]))
-                     if int(line.split()[0]) == self.NAtoms:
-                       read_geom = False
-     
+                    if freq_flag == False and re.search('Normal termination', line): freq_flag = True
+
+                    elif freq_flag == True and re.search('SCF Done',   line): self.E = float(line.split()[4]) 
+                    elif freq_flag == True and re.search('Sum of electronic and zero-point Energies',   line): self.Ezpe = float(line.split()[6])
+                    elif freq_flag == True and re.search('Sum of electronic and thermal Enthalpies' ,   line): self.H    = float(line.split()[6])                    
+                    elif freq_flag == True and re.search('Sum of electronic and thermal Free Energies', line): self.F    = float(line.split()[7])
+
+                    elif freq_flag == True and re.search('Coordinates', line) : read_geom = True
+                    elif freq_flag == True and read_geom == True and re.search('^\s*.\d', line):
+                         #geom.append(map(float, line.split()[3:6])) 
+                         #convert to a parse directly into list rather than map
+                         geom.append([float(x) for x in line.split()[3:6]])
+                         atoms.append(element_symbol(line.split()[1]))
+                         if int(line.split()[0]) == self.NAtoms:
+                           read_geom = False
+
+                elif job_opt == True: 
+
+                    if re.search('SCF Done',   line): E = float(line.split()[4])
+                    if re.search('Optimization completed.', line): 
+                        self.E = E ; freq_Flag = True
+                    elif freq_flag == True and re.search('Coordinates', line) : read_geom = True
+                    elif freq_flag == True and read_geom == True and re.search('^\s*.\d', line):
+                         #geom.append(map(float, line.split()[3:6])) 
+                         #convert to a parse directly into list rather than map
+                         geom.append([float(x) for x in line.split()[3:6]])
+                         atoms.append(element_symbol(line.split()[1]))
+                         if int(line.split()[0]) == self.NAtoms:
+                           read_geom = False
+
+                elif job_sp == True:
+
+                    print("No idea what you're dong")
+
         self.Freq = np.array( freq ) 
         self.Ints = np.array( ints )
         self.Vibs=np.zeros((self.NVibs, self.NAtoms, 3))
         for i in range(self.NVibs): self.Vibs[i,:,:] = vibs[i]
         self.xyz = np.array(geom)
         self.atoms = atoms
-
-        #making a tuple: EXPERIMENTAL
-        #I'm combining the atoms and xyz into a tuple because each atom has a respective xyz coordinate. idk might be a more useful container than 2 separate lists
-        list_combining_atoms_and_xyz =[]
-        for i in range(len(self.xyz)):
-            temp_tuple = (self.atoms[i],self.xyz[i])
-            list_combining_atoms_and_xyz.append(temp_tuple)
-        self.atoms_and_xyz = list_combining_atoms_and_xyz
 
     def __str__(self): 
 
