@@ -28,7 +28,6 @@ def clashcheck(conf, cutoff=1.0):
             else: dist[at1,at2] = 10.0
 
     Dist = dist*Inv_cm
-    print( np.amin(Dist))
     if np.amin(Dist) > cutoff: 
         return False
     else: 

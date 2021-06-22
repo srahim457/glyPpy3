@@ -24,19 +24,22 @@ class Space(list):
         self.path = path
         try: os.makedirs(self.path)
         except: 
-            print("directory already exists")
-            sys.exit(1)
-
-        pass
+            print("{0:10s} directory already exists".format(path))
 
     def __str__(self):
          
         '''Prints a nice table with coded molecular values'''
 
-        print ("%20s%20s%20s%20s" %('id', 'E', 'H', 'F'))
-        for conf in self: 
-            print ("%20s%20.2f%20.2f%20.2f" %(conf._id, conf.E*self._Ha2kcal, conf.H*self._Ha2kcal, conf.F*self._Ha2kcal))
-        return ''
+        if hasattr(self[0], 'H'): 
+            print ("%20s%20s%20s%20s" %('id', 'E [Ha]', 'H [Ha]', 'F [Ha]'))
+            for conf in self:
+                print ("%20s%20.8f%20.8f%20.8f" %(conf._id, conf.E, conf.H, conf.F))
+        else:
+            print ("%20s%20s" %('id', 'E [Ha]'))
+            for conf in self:  print ("%20s%20.8f" %(conf._id, conf.E))
+
+
+        return '' 
 
     def load_dir(self, path):
 
@@ -112,17 +115,6 @@ class Space(list):
         elif energy_function == 'H':    self.sort(key = lambda x: x.H)
         elif energy_function == 'F':    self.sort(key = lambda x: x.F)
 
-    def gaussian_broadening(self, broaden=1):
-
-        ''' Performs gaussian broadening for the set''' 
-
-        #checks if self.ir_resolution exists in the object, it would only exist if load_exp is called
-        #works when no load_exp is called, need to test with load_exp
-        if hasattr(self, 'self.ir_resolution'):
-            for conf in self: conf.gaussian_broadening(broaden, resolution=self.ir_resolution)
-        else:
-            for conf in self: conf.gaussian_broadening(broaden, resolution=1)
-                   
     def reference_to_zero(self, energy_function='E'):
 
         '''Finds a conformer with the lowest specified energy function and 
@@ -137,7 +129,40 @@ class Space(list):
               elif energy_function == 'F' and  conf.F < Fref: 
                     Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
         for conf in self: 
-              conf.E -= Eref;  conf.H -= Href ;  conf.F -= Fref
+              conf.Erel = conf.E -  Eref;  conf.Hrel = conf.H -  Href ;  conf.Frel = conf.F -  Fref
+
+    def print_relative(self):
+
+        try: hasattr(self[0], 'Erel')
+        except: 
+            print("run reference_to_zero first")
+            return None 
+
+        if hasattr(self[0], 'Frel'):
+            print ("%20s%20s%20s%20s" %('id', 'E [kcal/mol]', 'H [kcal/mol]', 'F [kac/mol]'))
+            for conf in self:
+                print ("%20s%20.2f%20.2f%20.2f" %(conf._id, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
+                if hasattr(conf, 'dih'):  
+                    for d in conf.dih:  print ("%20s" %(d), end='')
+                    print(' ')
+                else: print (' ')
+
+        else: 
+            print ("%20s%20s" %('id', 'E [kcal/mol]'))
+            for conf in self: print("%20s%20.2f" %(conf._id, conf.Erel*self._Ha2kcal))
+
+        return ''
+
+    def gaussian_broadening(self, broaden=1):
+
+        ''' Performs gaussian broadening for the set'''
+
+        #checks if self.ir_resolution exists in the object, it would only exist if load_exp is called
+        #works when no load_exp is called, need to test with load_exp
+        if hasattr(self, 'self.ir_resolution'):
+            for conf in self: conf.gaussian_broadening(broaden, resolution=self.ir_resolution)
+        else:
+            for conf in self: conf.gaussian_broadening(broaden, resolution=1)
 
     def create_connectivity_matrix(self, distXX=1.6, distXH=1.2): #1
 

@@ -162,13 +162,14 @@ class Conformer():
                     elif freq_flag == True and re.search('Sum of electronic and thermal Enthalpies' ,   line): self.H    = float(line.split()[6])                    
                     elif freq_flag == True and re.search('Sum of electronic and thermal Free Energies', line): self.F    = float(line.split()[7])
 
-                    elif freq_flag == True and re.search('Coordinates', line) : read_geom = True
+                    elif freq_flag == True and re.search('Coordinates', line): 
+                        if len(geom) == 0: read_geom = True
                     elif freq_flag == True and read_geom == True and re.search('^\s*.\d', line):
-                         #geom.append(map(float, line.split()[3:6])) 
-                         #convert to a parse directly into list rather than map
-                         geom.append([float(x) for x in line.split()[3:6]])
-                         atoms.append(element_symbol(line.split()[1]))
-                         if int(line.split()[0]) == self.NAtoms:
+                        #geom.append(map(float, line.split()[3:6])) 
+                        #convert to a parse directly into list rather than map
+                        geom.append([float(x) for x in line.split()[3:6]])
+                        atoms.append(element_symbol(line.split()[1]))
+                        if int(line.split()[0]) == self.NAtoms:
                            read_geom = False
 
                 elif job_opt == True: 
@@ -308,9 +309,10 @@ class Conformer():
             while n < len(path):
                 if path[-n] in self.ring_atoms[at].values(): 
                     linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(path[-n])])[-1]
+                    #if linker_type == '5': linker_type = '6' 
                     self.dih_atoms[at]['C'+linker_type+'l'] = path[-n]
                     C_phi = 'C'+str(int(linker_type)-1)
-                    if linker_type == 5: linker_type += 1 
+                    #if linker_type == 5: linker_type += 1 
                     self.dih_atoms[at][C_phi] = self.ring_atoms[at][C_phi]
                     break
                 else: 
@@ -326,6 +328,7 @@ class Conformer():
                 if self.atoms[at] == 'H': 
                     list_of_atoms = [ dih['O'], dih['C1l'], dih['Ol'], at ] 
             idih = measure_dihedral( self, list_of_atoms )[0] 
+            if linker_type == '5': linker_type = '6'
             if idih < 0.0: self.dih.append('b1'+linker_type)
             else: self.dih.append('a1'+linker_type)
  
@@ -348,7 +351,10 @@ class Conformer():
             atoms = sort_linkage_atoms(d)
             phi, ax = measure_dihedral(self, atoms[:4])
             psi, ax = measure_dihedral(self, atoms[1:5])
-            self.dih_angle.append([phi, psi])
+            if len(d) == 6: 
+                omega, ax = measure_dihedral(self, atoms[2:6])
+                self.dih_angle.append([phi, psi, omega])
+            else: self.dih_angle.append([phi, psi])
 
     def set_glycosidic(self, bond, phi, psi, omega=None):
 
