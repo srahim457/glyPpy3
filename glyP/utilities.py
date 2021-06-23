@@ -2,8 +2,9 @@ import math
 from . import calc_cp
 from . import rmsd
 import numpy as np
-import sys
+import sys, copy
 from scipy import interpolate
+from scipy.linalg import expm
 from optparse import OptionParser
 
 def error(msg):
@@ -16,7 +17,36 @@ def get_distance(at1, at2):
 
     return math.sqrt((at1[0]-at2[0])**2+(at1[1]-at2[1])**2+(at1[2]-at2[2])**2)
 
+def clashcheck(conf, cutoff=1.0):
+
+    Inv_cm = np.ones( (conf.NAtoms, conf.NAtoms) ) + 10*conf.conn_mat
+    dist = np.zeros((conf.NAtoms, conf.NAtoms))
+
+    for at1 in range(conf.NAtoms):
+        for at2 in range(conf.NAtoms):
+            if at1 != at2 : dist[at1,at2] = get_distance(conf.xyz[at1], conf.xyz[at2])
+            else: dist[at1,at2] = 10.0
+
+    Dist = dist*Inv_cm
+    if np.amin(Dist) > cutoff: 
+        return False
+    else: 
+        return True
+
+def adjacent_atoms(conn_mat, at):
+
+    return np.nonzero(conn_mat[at,:])[0]
+
+def draw_random():
+
+    return np.random.random_sample()
+
+def draw_random_int(top=1):
+
+    return np.random.randint(top)
+
 def element_symbol(A): 
+
     periodic_table = { '1' : 'H', '6' : 'C', '7' : 'N', '8' : 'O' , '9' : 'F', '14' : 'Si' }
     return periodic_table[A]
 
@@ -28,133 +58,221 @@ def calculate_ring(xyz, ring_atoms):
     phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
     return phi, psi, R
 
-def measure_dih(conf_space,conf,set_atoms):
-  '''conf_space is the object, 
-  conf is an index of conformer in the object, 
-  set_atoms is a list of ints which are indices of the atom in conformer 
-  Return: a list of dih angles phi and psi
-  '''
+def sort_linkage_atoms(dih_atoms):
 
-  at1 = conf_space[conf].xyz[set_atoms[0]]; at2 = conf_space[conf].xyz[set_atoms[1]]; at3 = conf_space[conf].xyz[set_atoms[2]]; at4 = conf_space[conf].xyz[set_atoms[3]]; at5 = conf_space[conf].xyz[set_atoms[4]];
+    d = dih_atoms
+    if 'C2l'   in dih_atoms.keys(): at1=d['O'] ; at2=d['C1l']; at3=d['Ol']; at4=d['C2l']; at5=d['C1']
+    elif 'C3l' in dih_atoms.keys(): at1=d['O'] ; at2=d['C1l']; at3=d['Ol']; at4=d['C3l']; at5=d['C2']
+    elif 'C4l' in dih_atoms.keys(): at1=d['O'] ; at2=d['C1l']; at3=d['Ol']; at4=d['C4l']; at5=d['C3']
+    elif 'C5l' in dih_atoms.keys(): 
+        at1=d['O'] ; at2=d['C1l']; at3=d['Ol']; at4=d['C6']; at5=d['C5l'] ; at6=d['C4']
+        return [at1, at2, at3, at4, at5, at6] 
 
-  phi_dihedral=angle_pp(at1,at2,at3,at2,at3,at4)
-  psi_dihedral=angle_pp(at2,at3,at4,at3,at4,at5)
+    return [ at1, at2, at3, at4, at5]
 
-  dihedral_angles=[]
-  
-  if dist_plp(at1,at2,at3,at4) < 0: 
-    dihedral_angles.append(-phi_dihedral)
-  else:
-    dihedral_angles.append(phi_dihedral)
+def determine_carried_atoms(at1, at2, conn_mat):
 
-  if dist_plp(at1,at2,at3,at4) < 0: 
-    dihedral_angles.append(-psi_dihedral)
-  else:
-    dihedral_angles.append(psi_dihedral)
+    """Find all atoms necessary to be carried over during rotation
+    of an atom 2:
 
-  return(dihedral_angles)
+    Args:
+        at1, at2: two atoms number
+    """
+    #   1. Zero the connections in connectivity matrix
+    tmp_conn = np.copy(conn_mat)
+    tmp_conn[at1, at2] = 0
+    tmp_conn[at2, at1] = 0
+    import networkx as nx
+    cm = nx.graph.Graph(tmp_conn)
+    if nx.is_connected(cm) == True:
+        print("Matrix still connected")
 
-def angle_pp(at1,at2,at3,at4,at5,at6):
+    #   2. Determine the connected atoms:
+    carried_atoms = [at2]
+    start = True
+    while start:
+        start = False
+        #   Always iterate over entire list because of branching
+        for at in carried_atoms:
+            #   List of indexes of connected atoms:
+            conn_atoms = np.where(tmp_conn[at] != 0)[0]
+            conn_atoms.tolist
+            for x in conn_atoms:
+                if x not in carried_atoms:
+                    carried_atoms.append(x)
+                    start = True
+    return carried_atoms
 
-  x1,y1,z1 = at1
-  x2,y2,z2 = at2 
-  x3,y3,z3 = at3 
-  x4,y4,z4 = at4 
-  x5,y5,z5 = at5
-  x6,y6,z6 = at6
+def calculate_normal_vector(conf, list_of_atoms):
+    """Calculate the normal vector of a plane by
+    cross product of two vectors belonging to it.
 
-# calculate Hess plane for plane A
+    Args:
+        list_of_atoms: list of 3 atoms
+        xyz: numpy array with atoms xyz position
+    """
 
-  dx21 = x2 - x1
-  dy21 = y2 - y1
-  dz21 = z2 - z1
-  l21  = math.sqrt( dx21*dx21 + dy21*dy21 + dz21*dz21 )
-  
+    r0 = conf.xyz[list_of_atoms[1], :] - conf.xyz[list_of_atoms[0], :]
+    r1 = conf.xyz[list_of_atoms[2], :] - conf.xyz[list_of_atoms[1], :]
+    cross_product = np.cross(r1, r0)
+    return cross_product
 
-  cosa21 = dx21/l21
-  cosb21 = dy21/l21
-  cosg21 = dz21/l21
+def measure_angle(conf, list_of_atoms):
 
-  
-  dx31 = x3 - x1
-  dy31 = y3 - y1
-  dz31 = z3 - z1
-  l31  = math.sqrt( dx31*dx31 + dy31*dy31 + dz31*dz31 )
-  
+    """Calculate an angle between three atoms:
+    angle = acos(dot(X,Y)/(norm(X)*norm(Y)))
 
-  cosa31 = dx31/l31
-  cosb31 = dy31/l31
-  cosg31 = dz31/l31
+    Args:
+        list_of_atoms: list of 3 atoms
+        xyz: numpy array with atoms xyz positions
+    """
+    r0 = conf.xyz[list_of_atoms[0], :] - conf.xyz[list_of_atoms[1], :]
+    r1 = conf.xyz[list_of_atoms[2], :] - conf.xyz[list_of_atoms[1], :]
 
-  A1 = cosb21*cosg31 - cosb31*cosg21
-  B1 = cosg21*cosa31 - cosg31*cosa21
-  C1 = cosa21*cosb31 - cosa31*cosb21
+    norm_r0 = np.sqrt(np.sum(r0**2))
+    norm_r1 = np.sqrt(np.sum(r1**2))
+    norm = norm_r0*norm_r1
 
-# calculate Hess plane for plane B
-  dx54 = x5 - x4
-  dy54 = y5 - y4
-  dz54 = z5 - z4
-  l54  = math.sqrt( dx54*dx54 + dy54*dy54 + dz54*dz54 )
+    dot_product = np.dot(r0, r1)/norm
+    angle = np.arccos(dot_product)
 
-  cosa54 = dx54/l54
-  cosb54 = dy54/l54
-  cosg54 = dz54/l54
+    #    Calculate the axis of rotation (axor):
+    axor = np.cross(r0, r1)
 
-  dx64 = x6 - x4
-  dy64 = y6 - y4
-  dz64 = z6 - z4
-  l64  = math.sqrt( dx64*dx64 + dy64*dy64 + dz64*dz64 )
+    return angle*180.0/np.pi, axor
 
-  cosa64 = dx64/l64
-  cosb64 = dy64/l64
-  cosg64 = dz64/l64
+def measure_dihedral(conf, list_of_atoms):
 
-  A2 = cosb54*cosg64 - cosb64*cosg54
-  B2 = cosg54*cosa64 - cosg64*cosa54
-  C2 = cosa54*cosb64 - cosa64*cosb54
+    """Calculate a dihedral angle between two planes defined by
+    a list of four atoms. It returns the angle and the rotation axis
+    required to set a new dihedral.
 
-# calculate angle between plane A and B
-  cosphi =  (A1*A2+B1*B2+C1*C2) /math.sqrt((A1*A1+B1*B1+C1*C1)*(A2*A2+B2*B2+C2*C2))
-  return ( math.acos(cosphi)*180/3.1415926535 )
+    Args:
+        list_of_atoms: list of 4 atoms
+        xyz: numpy array with atom xyz positions
+    """
+    plane1 = calculate_normal_vector(conf, list_of_atoms[:3])
+    plane2 = calculate_normal_vector(conf, list_of_atoms[1:])
+    #   Calculate the axis of rotation (axor)
+    axor = np.cross(plane1, plane2)
 
-def dist_plp(at1, at2, at3, at0):
-  ''' calculate distance from plane P1-P2-P3 to point P0 '''
+    #   Calculate a norm of normal vectors:
+    norm_plane1 = np.sqrt(np.sum(plane1**2))
+    norm_plane2 = np.sqrt(np.sum(plane2**2))
+    norm = norm_plane1 * norm_plane2
 
-  x1,y1,z1 = at1
-  x2,y2,z2 = at2 
-  x3,y3,z3 = at3 
-  x0,y0,z0 = at0 
+    #   Measure the angle between two planes:
+    dot_product = np.dot(plane1, plane2)/norm
+    alpha = np.arccos(dot_product)
 
-# calculate Hess plane for plane
-  dx21 = x2 - x1
-  dy21 = y2 - y1
-  dz21 = z2 - z1
-  l21  = math.sqrt( dx21*dx21 + dy21*dy21 + dz21*dz21 )
+    #   The cosine function is symetric thus, to distinguish between
+    #   negative and positive angles, one has to calculate if the fourth
+    #   point is above or below the plane defined by first 3 points:
 
-  cosa21 = dx21/l21
-  cosb21 = dy21/l21
-  cosg21 = dz21/l21
+    ppoint = - np.dot(plane1, conf.xyz[list_of_atoms[0], :])
+    dpoint = (np.dot(plane1, conf.xyz[list_of_atoms[3], :])+ppoint)/norm_plane1
 
-  dx31 = x3 - x1
-  dy31 = y3 - y1
-  dz31 = z3 - z1
-  l31  = math.sqrt( dx31*dx31 + dy31*dy31 + dz31*dz31 )
+    if dpoint >= 0:
+        return -(alpha*180.0)/np.pi, axor
+    else:
+        return (alpha*180.0)/np.pi, axor
 
-  cosa31 = dx31/l31
-  cosb31 = dy31/l31
-  cosg31 = dz31/l31
 
-  A = cosb21*cosg31 - cosb31*cosg21
-  B = cosg21*cosa31 - cosg31*cosa21
-  C = cosa21*cosb31 - cosa31*cosb21
+def set_angle(conf, list_of_atoms, new_ang):
 
-  p = - ( A*x1 + B*y1 + C*z1 )
+    from scipy.linalg import expm
 
-  d = ( A*x0 + B*y0 + C*z0 + p ) / math.sqrt( A*A + B*B + C*C )
-  return (d)
+    at1 = list_of_atoms[0] 
+    at2 = list_of_atoms[1] #midpoint 
+    at3 = list_of_atoms[2]  
+    #xyz = copy.copy(conf.xyz)
+    xyz = conf.xyz
 
- 
+    if len(position) != 3:
+        raise ValueError("The position needs to be defined by 4 integers")
+
+    """Set a new angle between three atoms
+
+    Args:
+        list_of_atoms: list of three atoms
+        new_ang: value of dihedral angle (in degrees) to be set
+        atoms_ring: dictionary of atoms in the ring. It recognizes
+                    if the last atom is 'C0O' (obsolete)
+        xyz: numpy array with atoms xyz positions
+        conn_mat: connectivity matrix
+    Returns:
+        xyz: modified numpy array with new atoms positions
+    """
+    #   Determine the axis of rotation:
+
+    old_ang, axor = measure_angle(conf, [at1, at2, at3])
+    norm_axor = np.sqrt(np.sum(axor**2))
+    normalized_axor = axor/norm_axor
+
+    #   Each carried_atom is rotated by euler-rodrigues formula:
+    #   Also, I move the midpoint of the bond to the mid atom
+    #   the rotation step and then move the atom back.
+
+    rot_angle = np.pi*(new_ang - old_ang)/180.
+    translation = xyz[at2, :]
+
+    #apply rotations to at3. 
+    rot = expm(np.cross(np.eye(3), normalized_axor*(rot_angle)))
+    xyz[at3, :] = np.dot(rot, xyz[at3, :]-translation)
+    xyz[at3, :] = xyz[at3, :]+translation
+
+    #return xyz
+
+def set_dihedral(conf, list_of_atoms, new_dih):
+
+    """Set a new dihedral angle between two planes defined by
+    atoms first and last three atoms of the supplied list.
+
+    Args:
+        list_of_atoms: list of four atoms
+        new_dih: value of dihedral angle (in degrees) to be set
+        xyz: numpy array with atoms xyz positions
+        conn_mat: connectivity matrix
+    Returns:
+        xyz: modified numpy array with new atoms positions
+    """
+    at1 = list_of_atoms[0]
+    at2 = list_of_atoms[1] #midpoint 
+    at3 = list_of_atoms[2]
+    at4 = list_of_atoms[3]
+    #xyz = copy.copy(conf.xyz)
+    xyz = conf.xyz
+
+    #   Determine the axis of rotation:
+    old_dih, axor = measure_dihedral(conf, [at1, at2, at3, at4])
+    norm_axor = np.sqrt(np.sum(axor**2))
+    normalized_axor = axor/norm_axor
+
+    #   Determine which atoms should be dragged along with the bond:
+    carried_atoms = determine_carried_atoms(at2,at3, conf.conn_mat)
+
+    #   Each carried_atom is rotated by Euler-Rodrigues formula:
+    #   Reverse if the angle is less than zero, so it rotates in
+    #   right direction.
+    #   Also, I move the midpoint of the bond to the center for
+    #   the rotation step and then move the atom back.
+
+    if old_dih >= 0.0:
+        rot_angle = np.pi*(new_dih - old_dih)/180.
+    else:
+        rot_angle = -np.pi*(new_dih - old_dih)/180.
+
+    rot = expm(np.cross(np.eye(3), normalized_axor*rot_angle))
+    translation = (xyz[list_of_atoms[1], :]+xyz[list_of_atoms[2], :])/2
+
+    for at in carried_atoms:
+        xyz[at, :] = np.dot(rot, xyz[at, :]-translation)
+        xyz[at, :] = xyz[at, :]+translation
+
+    #return xyz
+
 def calculate_rmsd(conf1, conf2, atoms=None): #pass 2 conformers instead of just the xyz list 
+
     xyz1 = []
     xyz2 = []
     #exclude the specified atom
