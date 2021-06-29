@@ -213,7 +213,12 @@ class Conformer():
         if hasattr(self, 'E'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
         for n  in self.graph.nodes:
             ring = self.graph.nodes[n]
-            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='\n')
+            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='')
+            if 'c6_atoms' in ring:
+                print("{0:10.1f}".format(ring['c6_dih']), end = '\n')
+            else:
+                print('')
+
         for e in self.graph.edges:
             edge = self.graph.edges[e]
 
@@ -282,8 +287,11 @@ class Conformer():
                     for at2 in np.where(self.conn_mat[at] == 1)[0]:
                         if atom_names[at2] == 'C' and at2 not in r:
                             rd['C5'] = at
-            #
-            for at in rd.values(): r.remove(at)
+                            rd['C6'] = at2 
+                            for at3 in adjacent_atoms(self.conn_mat, rd['C6']):
+                                if atom_names[at3] == 'O': rd['O6'] = at3
+
+            for at in [rd['O'], rd['C5']]: r.remove(at)
             for at in r:
                 if self.conn_mat[at][rd['O']] == 1: rd['C1'] = at
                 elif self.conn_mat[at][rd['C5']] == 1: rd['C4'] = at
@@ -309,6 +317,14 @@ class Conformer():
 
         for n, i in enumerate(ring_atoms): 
             self.graph.add_node(n, ring_atoms = i)
+        for n in self.graph.nodes:
+            if 'O6' not in self.graph.nodes[n]['ring_atoms'].keys(): pass 
+            else: 
+               atoms = [] 
+               for at in ['O', 'C5', 'C6', 'O6']:
+                    atoms.append(self.graph.nodes[n]['ring_atoms'][at])
+               self.graph.nodes[n]['c6_atoms'] = atoms
+               self.graph.nodes[n]['c6_dih'] = measure_dihedral(self, atoms)[0]
 
         #print(self.graph.nodes)
         #print(self.graph.number_of_nodes())
@@ -401,6 +417,16 @@ class Conformer():
                         else: linkage = 'a1'+linker_type
                         self.graph.add_edge(r1, r2, linker_atoms = linker_atoms, linker_type = linkage ) 
 
+        #Delete C6 bond if 16-linkage if present:
+        for n in self.graph.nodes:
+            node = self.graph.nodes[n]
+            edge = self.graph.out_edges(n)
+            if len(edge) == 0: break
+            #print(edge)
+            for e in edge:
+                if self.graph.edges[e]['linker_type'][-2:] == '16': 
+                    del node['c6_atoms'] ; del node['c6_dih']
+
         #determine anomaricity of the redicing end: 
         adj = adjacent_atoms(self.conn_mat, self.graph.nodes[0]['ring_atoms']['C1'])
         for at in adj:
@@ -412,6 +438,19 @@ class Conformer():
         else: self.anomer = 'alpha'
 
         #print (self.dih_atoms, self.dih, self.anomer)
+
+    def measure_c6(self): 
+
+        for n in self.graph.nodes:
+            if 'c6_atoms' in self.graph.nodes[n]:
+                self.graph.nodes[n]['c6_dih'] = measure_dihedral(self, self.graph.nodes[n]['c6_atoms'])[0]
+
+    def set_c6(self, ring, dih):
+
+        if hasattr(self.graph.nodes[ring], 'c6_atoms'):
+            atoms = self.graph.nodes[ring]['c6_dih']
+            set_dihedral(self, atoms, dih)
+        self.measure_c6()
 
     def measure_glycosidic(self):
 

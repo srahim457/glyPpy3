@@ -25,6 +25,14 @@ def modify_glyc(conf, bond):
         #print( angles )
         conf.set_glycosidic(bond, angles[0], angles[1], angles[2], angles[3])
 
+def modify_c6(conf, ring):
+
+    node = conf.graph.nodes[ring]
+    if 'c6_atoms' in node:
+        atoms = node['c6_atoms']
+        dih = ((utilities.draw_random_int(top=3)-1)*120.0)+60.0
+        conf.set_c6(ring, dih)
+
 def modify_ring(conf, ring, phi, psi):
 
     pass
