@@ -74,7 +74,7 @@ class Conformer():
         f.write(' ')
         f.close()
 
-    def run_gaussian(self):
+    def run_gaussian(self, mpi=False):
 
         try: hasattr(self, 'outdir')
         except:
@@ -85,7 +85,11 @@ class Conformer():
 
         with open('input.log', 'w') as out:
 
-            gauss_job = Popen("g16 input.com ", shell=True, stdout=out, stderr=out)
+            if mpi == True: 
+                gauss_job = Popen("mpiexec -n " + str(theory['nprocs']) + "g16 input.com ", shell=True, stdout=out, stderr=out)
+            elif mpi == False: 
+                gauss_job = Popen("g16 input.com ", shell=True, stdout=out, stderr=out)
+
             gauss_job.wait()
 
         os.chdir(cwd)
