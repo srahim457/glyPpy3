@@ -80,16 +80,9 @@ class Space(list):
             conf.connectivity_matrix(distXX=1.6, distXH=1.2)
             conf.assign_atoms()
 
-            for r in conf.ring_atoms:                                               
-                phi, psi, R = calculate_ring(conf.xyz, r)
-                conf.ring.append(R) ; conf.ring_angle.append([phi, psi])    
+            conf.measure_ring()
+            conf.measure_glycosidic()
 
-            for d in conf.dih_atoms:
-
-                atoms = sort_linkage_atoms(d)
-                phi, ax = measure_dihedral(conf, atoms[:4])
-                psi, ax = measure_dihedral(conf, atoms[1:5])
-                conf.dih_angle.append([phi, psi])
 
     def set_theory(self, **kwargs):
 

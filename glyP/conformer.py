@@ -38,8 +38,8 @@ class Conformer():
             if n > 1:
                  if len(line.split()) == 0: break 
                  geom.append([float(x) for x in line.split()[1:4]])
-                 atoms.append(element_symbol(line.split()[0]))
-                 #atoms.append(line.split()[0])
+                 #atoms.append(element_symbol(line.split()[0]))
+                 atoms.append(line.split()[0])
 
         self.xyz = np.array(geom)
         self.atoms = atoms
@@ -114,13 +114,13 @@ class Conformer():
 
                         if "freq" in line: 
                             job_optfreq = True ; job += 1 
-                            print("Reading optfreq")
+                            #print("Reading optfreq")
                         else: 
                             job_opt = True ; job += 1 
-                            print("Reading opt")
+                            #print("Reading opt")
                     elif "freq" in line: 
                             job_optfreq = True ; freq_flag = True ;  job += 1 
-                            print("Reading freq")
+                            #print("Reading freq")
                     else: job_sp = True ; job += 1 
 
                 if self.NAtoms == None and re.search('^ NAtoms=', line): 
@@ -199,24 +199,24 @@ class Conformer():
 
     def __str__(self): 
 
-       '''Prints a some molecular properties'''
+        '''Prints a some molecular properties'''
 
-       print ("%30s            NAtoms=%5d" %(self._id, self.NAtoms))
-       print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
-       if hasattr(self, 'rings'):
-            for n in range(len(self.ring)):
-                print ("Ring {0:3d}{1:5s}    {2:6.1f} {3:6.1f}".format(n, self.ring[n], self.ring_angle[n][0], self.ring_angle[n][1]), end='')
-       if hassattr(self, 'dih_angle'):
-            for d in range(len(self.dih_angle)):
-                if len(d) == 2: 
-                    print ("Linkage: {0:5s}  {1:6.1f} {2:6.1f}".format(self.dih[d], self.dih_angle[d][0], self.dih_angle[1]), end='' )
-                elif len(d) == 3: 
-                    print ("Linkage: {0:5s}  {1:6.1f} {2:6.1f} {3:6.1f}".format(self.dih[d], self.dih_angle[d][0], self.dih_angle[1], self.dih_angle[2]), end='' )                    
+        print ("%20s    NAtoms=%5d" %(self._id, self.NAtoms))
+        if hasattr(self, 'E'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
+        for n  in self.graph.nodes:
+            ring = self.graph.nodes[n]
+            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='\n')
+        for e in self.graph.edges:
+            edge = self.graph.edges[e]
+            if len(edge['dihedral']) == 2: 
+                 print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1]), end='\n' )
+            if len(edge['dihedral']) == 3: 
+                 print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f} {4:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1], edge['dihedral'][2]), end='\n')
                 #for at in ['C1', 'C2', 'C3', 'C4', 'C5', 'O' ]: 
                 #    print ("%3s:%3s" %(at, self.ring_atoms[n][at]), end='')
                 #print()
 
-       return ' '
+        return ' '
 
     def gaussian_broadening(self, broaden, resolution=1):
  
@@ -227,14 +227,13 @@ class Conformer():
                          defaults is 1, needs to be fixed in plotting
         Returns:
             self.IR - np.array with dimmension 4000/resolution consisting
-                      gaussian-boraden spectrum
+                     gaussian-boraden spectrum
         '''
 
         IR = np.zeros((int(4000/resolution) + 1,))
         X = np.linspace(0,4000, int(4000/resolution)+1)
         for f, i in zip(self.Freq, self.Ints):  IR += i*np.exp(-0.5*((X-f)/int(broaden))**2)
         self.IR=np.vstack((X, IR)).T #tspec
- 
 
     def connectivity_matrix(self, distXX, distXH):
 
@@ -250,16 +249,18 @@ class Conformer():
 
     def assign_atoms(self):
 
+        self.graph = nx.DiGraph()
 
+        #Assign ring atoms: 
         cm = nx.graph.Graph(self.conn_mat)
         cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
         atom_names = self.atoms
-        self.ring_atoms = []
+        ring_atoms = []
         n = 0
         for r in cycles_in_graph:
-            self.ring_atoms.append({}) #dictionary, probably atom desc
+            ring_atoms.append({}) #dictionary, probably atom desc
             # C5 and O
-            rd = self.ring_atoms[n] # rd = ring dicitionary
+            rd = ring_atoms[n] # rd = ring dicitionary
             for at in r:
                 if atom_names[at] == 'O':
                     rd['O'] = at #atom one of the rings
@@ -280,64 +281,116 @@ class Conformer():
             n += 1
 
         #Find reduncing end and sort the list:
-        C1s = [ x['C1'] for x in self.ring_atoms]; C1pos = []
+
+        C1s = [ x['C1'] for x in ring_atoms]; C1pos = []
         for n, C1 in enumerate(C1s): 
             NRed=0; NNon=0 #NRed = reducing end NNon = non reducing end
             for C12 in C1s:
                 path = nx.shortest_path(cm, C1, C12)
                 if len(path) == 1: continue
-                elif path[1] in self.ring_atoms[n].values(): NNon+=1
+                elif path[1] in ring_atoms[n].values(): NNon+=1
                 else: NRed += 1
             C1pos.append(NRed)
-        self.ring_atoms = [ i[0] for i in sorted(zip(self.ring_atoms, C1pos), key=itemgetter(1)) ]
+        ring_atoms = [ i[0] for i in sorted(zip(ring_atoms, C1pos), key=itemgetter(1)) ]
 
+        for n, i in enumerate(ring_atoms): 
+            self.graph.add_node(n, ring_atoms = i)
+
+        #print(self.graph.nodes)
+        #print(self.graph.number_of_nodes())
         #identify bonds:
         #1. Create shortest paths between anomeric carbons to get O's and bond types.
         
-        C1s = [ x['C1'] for x in self.ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
-        self.dih_atoms = [] ; self.dih = [] 
+        #C1s = [ x['C1'] for x in ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
+        #self.dih_atoms = [] ; self.dih = [] 
 
-        for at in range(len(C1s)-1):
+        #for at in range(len(C1s)-1):
+        #
+        #    self.dih_atoms.append({})
+        #    at1 = at+1 
+        #    path = nx.shortest_path(cm, C1s[at], C1s[at1])
+        #    n=2 ; 
+        #    self.dih_atoms[at]['C1l'] = C1s[at1]
+        #    self.dih_atoms[at]['O']  = self.ring_atoms[at1]['O']
+        #    #print(path)
+        #    while n < len(path):
+        #        if path[-n] in self.ring_atoms[at].values(): 
+        #            linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(path[-n])])[-1]
+        #            #if linker_type == '5': linker_type = '6' 
+        #            self.dih_atoms[at]['C'+linker_type+'l'] = path[-n]
+        #            C_phi = 'C'+str(int(linker_type)-1)
+        #            #if linker_type == 5: linker_type += 1 
+        #            self.dih_atoms[at][C_phi] = self.ring_atoms[at][C_phi]
+        #            break
+        #        else: 
+        #            if n == 2: 
+        #                self.dih_atoms[at]['Ol']  = path[-n]
+        #            elif n == 3: 
+        #                self.dih_atoms[at]['C6']  = path[-n]
+        #        n=n+1
 
-            self.dih_atoms.append({})
-            at1 = at+1 
-            path = nx.shortest_path(cm, C1s[at], C1s[at1])
-            n=2 ; 
-            self.dih_atoms[at]['C1l'] = C1s[at1]
-            self.dih_atoms[at]['O']  = self.ring_atoms[at1]['O']
+        #    dih = self.dih_atoms[at] 
+        #    adj = adjacent_atoms(self.conn_mat, dih['C1l']) 
+        #    for at in adj:
+        #        if self.atoms[at] == 'H': 
+        #            list_of_atoms = [ dih['O'], dih['C1l'], dih['Ol'], at ] 
+        #    idih = measure_dihedral( self, list_of_atoms )[0] 
+        #    if linker_type == '5': linker_type = '6'
+        #    if idih < 0.0: self.dih.append('b1'+linker_type)
+        #    else: self.dih.append('a1'+linker_type)
 
-            while n < len(path):
-                if path[-n] in self.ring_atoms[at].values(): 
-                    linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(path[-n])])[-1]
-                    #if linker_type == '5': linker_type = '6' 
-                    self.dih_atoms[at]['C'+linker_type+'l'] = path[-n]
-                    C_phi = 'C'+str(int(linker_type)-1)
-                    #if linker_type == 5: linker_type += 1 
-                    self.dih_atoms[at][C_phi] = self.ring_atoms[at][C_phi]
-                    break
-                else: 
-                    if n == 2: 
-                        self.dih_atoms[at]['Ol']  = path[-n]
-                    elif n == 3: 
-                        self.dih_atoms[at]['C6']  = path[-n]
-                n=n+1
+        C1s = [ x['C1'] for x in ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
+        cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
+        for r1 in range(self.graph.number_of_nodes()):
+            for r2 in range(self.graph.number_of_nodes()):
+                linker_atoms = [] ; linked = False
+                if r1 == r2 : pass
+                else:
+                    path = nx.shortest_path(cm, self.graph.nodes[r1]['ring_atoms']['C1'], self.graph.nodes[r2]['ring_atoms']['C1'])
+                    n = 1 ; term = False
+                    while n < len(path):
+                        at = path[-n]
+                        #Check wheter path[n] is inside a cycle
+                        c = 0 
+                        for cycle in cycles_in_graph:
+                            if at in cycle: 
+                                if at in self.graph.nodes[r2]['ring_atoms'].values():
+                                    linker_atoms.append(self.graph.nodes[r2]['ring_atoms']['O'])
+                                    linker_atoms.append(at)
+                                    n += 1 ; break 
+                                elif at in self.graph.nodes[r1]['ring_atoms'].values():
+                                    linker_atoms.append(at)
+                                    linked = True ; term = True  
+                                    linker_type = (list(self.graph.nodes[r1]['ring_atoms'].keys())[list(self.graph.nodes[r1]['ring_atoms'].values()).index(at)])[-1]
+                                    C_psi = 'C'+str(int(linker_type)-1)
+                                    linker_atoms.append(self.graph.nodes[r1]['ring_atoms'][C_psi])
+                                    break
+                                else:
+                                    term = True ; break
+                            else: c += 1 
+                        if c == 3: 
+                            linker_atoms.append(at) 
+                            n += 1
+                        if term == True: break
+                    #print(linker_type)
 
-            dih = self.dih_atoms[at] 
-            adj = adjacent_atoms(self.conn_mat, dih['C1l']) 
-            for at in adj:
-                if self.atoms[at] == 'H': 
-                    list_of_atoms = [ dih['O'], dih['C1l'], dih['Ol'], at ] 
-            idih = measure_dihedral( self, list_of_atoms )[0] 
-            if linker_type == '5': linker_type = '6'
-            if idih < 0.0: self.dih.append('b1'+linker_type)
-            else: self.dih.append('a1'+linker_type)
- 
+                    if linked == True:
+                        adj = adjacent_atoms(self.conn_mat, linker_atoms[1])
+                        for at in adj:
+                            if self.atoms[at] == 'H':
+                                list_of_atoms = linker_atoms[:3] + [at]
+                        idih = measure_dihedral( self, list_of_atoms )[0]
+                        if linker_type == '5': linker_type = '6'
+                        if idih < 0.0: linkage = 'b1'+linker_type
+                        else: linkage = 'a1'+linker_type
+                        self.graph.add_edge(r1, r2, linker_atoms = linker_atoms, linker_type = linkage ) 
+
         #determine anomaricity of the redicing end: 
-        adj = adjacent_atoms(self.conn_mat, self.ring_atoms[0]['C1'])
+        adj = adjacent_atoms(self.conn_mat, self.graph.nodes[0]['ring_atoms']['C1'])
         for at in adj:
             if self.atoms[at] == 'H': Ha = at
-            if self.atoms[at] == 'O' and at not in self.ring_atoms[0].values(): O = at
-        list_of_atoms = [ self.ring_atoms[0]['O'], self.ring_atoms[0]['C1'], O, Ha] 
+            if self.atoms[at] == 'O' and at not in self.graph.nodes[0]['ring_atoms'].values(): O = at
+        list_of_atoms = [ self.graph.nodes[0]['ring_atoms']['O'], self.graph.nodes[0]['ring_atoms']['C1'], O, Ha] 
         idih = measure_dihedral( self, list_of_atoms )[0]
         if idih < 0.0: self.anomer = 'beta'
         else: self.anomer = 'alpha'
@@ -346,39 +399,37 @@ class Conformer():
 
     def measure_glycosidic(self):
 
-        self.dih_angle = []
-        for d in self.dih_atoms:
-            atoms = sort_linkage_atoms(d)
+        for e in self.graph.edges:
+            atoms = self.graph.edges[e]['linker_atoms']
             phi, ax = measure_dihedral(self, atoms[:4])
             psi, ax = measure_dihedral(self, atoms[1:5])
-            if len(d) == 6: 
+            if len(atoms) == 6: 
                 omega, ax = measure_dihedral(self, atoms[2:6])
-                self.dih_angle.append([phi, psi, omega])
-            else: self.dih_angle.append([phi, psi])
+                self.graph.edges[e]['dihedral'] = [phi, psi, omega]
+            else: self.graph.edges[e]['dihedral'] = [phi, psi]
 
     def set_glycosidic(self, bond, phi, psi, omega=None):
 
-        atoms = sort_linkage_atoms(self.dih_atoms[bond])
+        #atoms = sort_linkage_atoms(self.dih_atoms[bond])
+        atoms = self.graph.edges[bond]
         set_dihedral(self, atoms[:4], phi)
         set_dihedral(self, atoms[1:5], psi)
         if omega != None: 
             set_dihedral(self, atoms[2:], omega)
+        measure_glycosidic()
 
     def measure_ring(self):
 
-        self.ring = []
-        self.ring_angle = []
-        for r in self.ring_atoms:
-            phi, psi, R = calculate_ring(self.xyz, r)
-            self.ring.append(R) ; self.ring_angle.append([phi, psi])
+        for n in self.graph.nodes:
+            atoms = self.graph.nodes[n]['ring_atoms']
+            phi, psi, R = calculate_ring(self.xyz, atoms)
+            self.graph.nodes[n]['ring'] = R; self.graph.nodes[n]['CP'] = [phi, psi]
 
     def update_vector(self):
 
         self.ga_vector = []
-        for dih in self.dih_angle:
-            self.ga_vector.append([dih[0],dih[1]])
-        for ring in self.ring_angle:
-            self.ga_vector.append([ring[0], ring[1]])
+        for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
+        for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
 
     def show_xyz(self, width=400, height=400):
 
