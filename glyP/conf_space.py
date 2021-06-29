@@ -135,11 +135,11 @@ class Space(list):
             print ("%20s%20s%20s%20s" %('id', 'E [kcal/mol]', 'H [kcal/mol]', 'F [kac/mol]'))
             for conf in self:
                 print ("%20s%20.2f%20.2f%20.2f" %(conf._id, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
-                if hasattr(conf, 'dih'):  
-                    for d in conf.dih:  print ("%20s" %(d), end='')
-                    print(' ')
-                else: print (' ')
-
+                print("  Linkages:  ", end='')
+                for e in conf.graph.edges:
+                    edge = conf.graph.edges[e]
+                    print(" {0:6s}".format(edge['linker_type']), end='')
+                print(' ')
         else: 
             print ("%20s%20s" %('id', 'E [kcal/mol]'))
             for conf in self: print("%20s%20.2f" %(conf._id, conf.Erel*self._Ha2kcal))

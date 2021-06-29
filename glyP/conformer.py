@@ -49,16 +49,17 @@ class Conformer():
         if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3':
             theory['disp'] = 'EmpiricalDispersion=GD3'
         else: 
-            theory['disp'] = ' ' 
-        try:
-            outdir = '/'.join([output, self._id])
-            os.makedirs(outdir)
-            self.outdir = outdir
-        except: 
-            print("id already exists")
-            sys.exit(1)
+            theory['disp'] = ' '
 
+        outdir = '/'.join([output, self._id])
         input_file = outdir + '/input.com'
+        self.outdir = outdir
+        try:
+            os.makedirs(outdir)
+        except: 
+            os.remove(input_file) 
+            os.remove(outdir+'/input.log') 
+
         f = open(input_file, 'w')
         f.write('%nproc=' + str(theory['nprocs'])+'\n')
         f.write('%mem='+theory['mem']+'\n')
@@ -81,11 +82,14 @@ class Conformer():
             sys.exit(1)
 
         cwd=os.getcwd(); os.chdir(self.outdir)
-        with open('input.log', 'w') as out: 
+
+        with open('input.log', 'w') as out:
+
             gauss_job = Popen("g16 input.com ", shell=True, stdout=out, stderr=out)
             gauss_job.wait()
 
         os.chdir(cwd)
+        return gauss_job.returncode
 
     def load_log(self, file_path):
 
@@ -208,10 +212,16 @@ class Conformer():
             print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='\n')
         for e in self.graph.edges:
             edge = self.graph.edges[e]
+
             if len(edge['dihedral']) == 2: 
-                 print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1]), end='\n' )
-            if len(edge['dihedral']) == 3: 
-                 print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f} {4:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1], edge['dihedral'][2]), end='\n')
+                print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1]), end='\n' )
+
+            elif len(edge['dihedral']) == 3: 
+                print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f} {4:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1], edge['dihedral'][2]), end='\n')
+
+            elif len(edge['dihedral']) == 4: 
+                print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f} {4:6.1f} {5:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1], edge['dihedral'][2], edge['dihedral'][3]), end='\n')
+
                 #for at in ['C1', 'C2', 'C3', 'C4', 'C5', 'O' ]: 
                 #    print ("%3s:%3s" %(at, self.ring_atoms[n][at]), end='')
                 #print()
@@ -381,6 +391,8 @@ class Conformer():
                                 list_of_atoms = linker_atoms[:3] + [at]
                         idih = measure_dihedral( self, list_of_atoms )[0]
                         if linker_type == '5': linker_type = '6'
+                        if self.atoms[linker_atoms[4]] == 'N':
+                            linker_type += 'N' 
                         if idih < 0.0: linkage = 'b1'+linker_type
                         else: linkage = 'a1'+linker_type
                         self.graph.add_edge(r1, r2, linker_atoms = linker_atoms, linker_type = linkage ) 
@@ -403,20 +415,31 @@ class Conformer():
             atoms = self.graph.edges[e]['linker_atoms']
             phi, ax = measure_dihedral(self, atoms[:4])
             psi, ax = measure_dihedral(self, atoms[1:5])
-            if len(atoms) == 6: 
+
+            if len(atoms) == 6: #1-6 linkage
                 omega, ax = measure_dihedral(self, atoms[2:6])
                 self.graph.edges[e]['dihedral'] = [phi, psi, omega]
+
+            elif len(atoms) == 7: # linkage at NAc
+                omega, ax = measure_dihedral(self, atoms[2:6])
+                gamma, ax = measure_dihedral(self, atoms[3:7])
+                self.graph.edges[e]['dihedral'] = [phi, psi, omega, gamma]
+
             else: self.graph.edges[e]['dihedral'] = [phi, psi]
 
-    def set_glycosidic(self, bond, phi, psi, omega=None):
+    def set_glycosidic(self, bond, phi, psi, omega=None, gamma=None):
 
         #atoms = sort_linkage_atoms(self.dih_atoms[bond])
-        atoms = self.graph.edges[bond]
+        atoms = self.graph.edges[bond]['linker_atoms']
         set_dihedral(self, atoms[:4], phi)
         set_dihedral(self, atoms[1:5], psi)
+
         if omega != None: 
-            set_dihedral(self, atoms[2:], omega)
-        measure_glycosidic()
+            set_dihedral(self, atoms[2:6], omega)
+        if gamma != None: 
+            set_dihedral(self, atoms[3:7], gamma)
+
+        self.measure_glycosidic()
 
     def measure_ring(self):
 
