@@ -9,7 +9,10 @@
 #echo $HOSTNAME > test-file 
 source /home/matma/.bashrc
 export PGI_FASTMATH_CPU=sandybridge
+
 conda activate glyP
+
+
 python run_ga.py 
 
 
