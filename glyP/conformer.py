@@ -28,11 +28,11 @@ class Conformer():
         self._id = topol
         self.topol = topol
 
-
     def load_model(self, file_path):
 
         self.NAtoms = None
         self._id    = str(file_path).split('/')[1]
+        self.topol = self._id
         geom = [] ; atoms = []
 
         for n, line in enumerate(open(file_path, 'r').readlines()):

@@ -118,6 +118,7 @@ with open(output, 'w') as out:
         offspring.update_vector()
         print(offspring)
 
+        duplicate = False
         for i in range(N):
             rmsd = glyP.utilities.calculate_rmsd(offspring, GArun[i])
             print (rmsd)

@@ -24,7 +24,8 @@ class Space(list):
         self.path = path
         try: os.makedirs(self.path)
         except: 
-            print("{0:10s} directory already exists".format(path))
+            print("{0:10s} directory already exists, loading data".format(path))
+            self.load_dir(path, None)
 
     def __str__(self):
          
@@ -41,7 +42,7 @@ class Space(list):
 
         return '' 
 
-    def load_dir(self, path, topol):
+    def load_dir(self, path, topol=None):
 
         for (root, dirs, files) in os.walk('./'+path):
             for dirname in dirs:
@@ -52,6 +53,10 @@ class Space(list):
                             conf = Conformer(topol)
                             conf.load_log(path+'/'+dirname+'/'+filename)
                             self.append(conf)
+                            if topol == None and hasattr(self, 'models'):
+                                conf.create_connectivity_matrix()
+                                for m in self.models: 
+                                    if conf.conn_mat == m.conn_mat: conf.topol = m.topol 
 
     def load_exp(self, path, ir_resolution=1.0):
 
@@ -68,7 +73,7 @@ class Space(list):
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.xyz'):
-                            conf = Conformer('dummy')
+                            conf = Conformer(None)
                             conf.load_model(path+'/'+dirname+'/'+filename)
                             self.models.append(conf)
         self.Nmodels = len(self.models)
