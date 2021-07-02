@@ -24,7 +24,7 @@ class Space(list):
         self.path = path
         try: os.makedirs(self.path)
         except: 
-            print("{0:10s} directory already exists, loading data".format(path))
+            print("{0:10s} directory already exists, load existing data".format(path))
             self.load_dir(path, None)
 
     def __str__(self):
@@ -50,13 +50,14 @@ class Space(list):
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.log'):
-                            conf = Conformer(topol)
-                            conf.load_log(path+'/'+dirname+'/'+filename)
-                            self.append(conf)
-                            if topol == None and hasattr(self, 'models'):
-                                conf.create_connectivity_matrix()
-                                for m in self.models: 
-                                    if conf.conn_mat == m.conn_mat: conf.topol = m.topol 
+                            for line in open('/'.join([path, dirname, filename]), 'r').readlines()[-10:]:
+                                if re.search('Normal',  line):
+                                    conf = Conformer(topol)
+                                    conf.load_log(path+'/'+dirname+'/'+filename)
+                                    conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+                                    conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
+                                    self.append(conf)
+                                    
 
     def load_exp(self, path, ir_resolution=1.0):
 
@@ -82,11 +83,32 @@ class Space(list):
             print("Analyze {0:10s}".format(conf._id))
             conf.ring = [] ; conf.ring_angle = [] ; conf.dih_angle = []
  
-            conf.connectivity_matrix(distXX=1.6, distXH=1.2)
-            conf.assign_atoms()
+            conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+            conf.assign_atoms() ; conf.measure_c6() ; conf.measure_ring() ; conf.measure_glycosidic()
 
-            conf.measure_ring()
-            conf.measure_glycosidic()
+        if len(self) != 0: 
+            for conf in self: 
+                conf.topol = 'new'
+                conf_links = [ conf.graph.edges[e]['linker_type'] for e in conf.graph.edges]
+                for m in self.models:
+                    m_links = [ m.graph.edges[e]['linker_type'] for e in m.graph.edges ]
+                    mat = conf.conn_mat - m.conn_mat
+                    if not np.any(mat) and conf_links == m_links :
+                        conf.topol = m.topol
+                        break
+                        #return 0
+                    elif conf_links == m_links: 
+                        atc = 0 
+                        acm = np.argwhere(np.abs(mat) == 1)
+                        for at in acm:
+                            if conf.atoms[at[0]] == 'H' or conf.atoms[at[1]] == 'H':
+                                atc += 1 
+                        if atc == len(acm):
+                                conf.topol = m.topol+'_Hs'
+                                break
+                    
+#                    if np.array_equal(conf.conn_mat, m.conn_mat) and conf_links == m_links : conf.topol = m.topol
+
 
 
     def set_theory(self, **kwargs):
@@ -119,27 +141,42 @@ class Space(list):
         references remainins conformers to this.'''
 
         Eref = 0.0 ; Fref = 0.0 ; Href = 0.0 
-        for conf in self: 
-              if energy_function == 'E' and  conf.E < Eref: 
-                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
-              elif energy_function == 'H' and  conf.H < Href: 
-                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
-              elif energy_function == 'F' and  conf.F < Fref: 
-                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
-        for conf in self: 
-              conf.Erel = conf.E -  Eref;  conf.Hrel = conf.H -  Href ;  conf.Frel = conf.F -  Fref
 
-    def print_relative(self):
+        if hasattr(self[0], 'F'):
+            for conf in self:
+                if energy_function == 'E' and  conf.E < Eref:
+                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
+                elif energy_function == 'H' and  conf.H < Href:
+                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
+                elif energy_function == 'F' and  conf.F < Fref:
+                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
+            for conf in self: 
+                conf.Erel = conf.E -  Eref;  conf.Hrel = conf.H -  Href ;  conf.Frel = conf.F -  Fref
+        else:
+            for conf in self:
+                if energy_function == 'E' and  conf.E < Eref:
+                    Eref = cp(conf.E)
 
-        try: hasattr(self[0], 'Erel')
-        except: 
-            print("run reference_to_zero first")
+            for conf in self: 
+                conf.Erel = conf.E -  Eref
+
+    def print_relative(self, alive=None):
+
+        if len(self) != 0:
+            try: hasattr(self[0], 'Erel')
+            except: 
+                print("run reference_to_zero first")
+                return None 
+        else:
             return None 
-
-        print ("%20s%20s%8s%8s%8s" %('id', 'topol',  'E', 'H', 'F'))
-        for conf in self: 
+        if hasattr(self[0], 'Frel'): print ("%20s%20s%8s%8s%8s" %('id', 'topol',  'E', 'H', 'F'))
+        else:  print ("%20s%20s%8s" %('id', 'topol',  'E'))
+        for n, conf in enumerate(self): 
+            if n == alive: print("---------------------------------")
             if hasattr(self[0], 'Frel'):
                 print ("%20s%20s%8.2f%8.2f%8.2f" %(conf._id, conf.topol, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
+            else: 
+               print("%20s%20s%8.2f" %(conf._id, conf.topol, conf.Erel*self._Ha2kcal), end='')
             if hasattr(self[0], 'ccs'):
                 print("{0:8.1f}".format(conf.ccs), end='')
             if hasattr(self[0], 'anomer'):

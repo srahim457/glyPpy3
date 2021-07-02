@@ -59,9 +59,10 @@ class Conformer():
         self.outdir = outdir
         try:
             os.makedirs(outdir)
-        except: 
-            os.remove(input_file) 
-            os.remove(outdir+'/input.log') 
+        except:
+            for ifiles in os.walk(outdir):
+                for filename in ifiles[2]:
+                    os.remove('/'.join([outdir,filename])) 
 
         f = open(input_file, 'w')
         f.write('%nproc=' + str(theory['nprocs'])+'\n')
@@ -123,6 +124,7 @@ class Conformer():
         normal_mode_flag=False
         freq_flag = False
         read_geom = False
+        opt_flag = False
 
         #temprorary variables to hold the data
         freq = [] ; ints = [] ; vibs = [] ; geom = [] ; atoms = []
@@ -136,7 +138,6 @@ class Conformer():
 
                 if re.search('^ #', line) and job == 0:
                     if "opt" in line:
-
                         if "freq" in line: 
                             job_optfreq = True ; job += 1 
                             #print("Reading optfreq")
@@ -201,9 +202,9 @@ class Conformer():
 
                     if re.search('SCF Done',   line): E = float(line.split()[4])
                     if re.search('Optimization completed.', line): 
-                        self.E = E ; freq_Flag = True
-                    elif freq_flag == True and re.search('Coordinates', line) : read_geom = True
-                    elif freq_flag == True and read_geom == True and re.search('^\s*.\d', line):
+                         self.E = E ; opt_flag = True  
+                    elif opt_flag == True and re.search('Coordinates', line) : read_geom = True
+                    elif opt_flag == True and read_geom == True and re.search('^\s*.\d', line):
                          #geom.append(map(float, line.split()[3:6])) 
                          #convert to a parse directly into list rather than map
                          geom.append([float(x) for x in line.split()[3:6]])
@@ -215,10 +216,12 @@ class Conformer():
 
                     print("No idea what you're dong")
 
-        self.Freq = np.array( freq ) 
-        self.Ints = np.array( ints )
-        self.Vibs=np.zeros((self.NVibs, self.NAtoms, 3))
-        for i in range(self.NVibs): self.Vibs[i,:,:] = vibs[i]
+        if freq_flag == True: 
+            self.Freq = np.array( freq ) 
+            self.Ints = np.array( ints )
+            self.Vibs=np.zeros((self.NVibs, self.NAtoms, 3))
+            for i in range(self.NVibs): self.Vibs[i,:,:] = vibs[i]
+
         self.xyz = np.array(geom)
         self.atoms = atoms
 
@@ -227,7 +230,8 @@ class Conformer():
         '''Prints a some molecular properties'''
 
         print ("%20s    NAtoms=%5d" %(self._id, self.NAtoms))
-        if hasattr(self, 'E'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
+        if hasattr(self, 'F'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
+        else: print("E=%20.4f" %( self.E))
         for n  in self.graph.nodes:
             ring = self.graph.nodes[n]
             print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='')
@@ -342,49 +346,6 @@ class Conformer():
                     atoms.append(self.graph.nodes[n]['ring_atoms'][at])
                self.graph.nodes[n]['c6_atoms'] = atoms
                self.graph.nodes[n]['c6_dih'] = measure_dihedral(self, atoms)[0]
-
-        #print(self.graph.nodes)
-        #print(self.graph.number_of_nodes())
-        #identify bonds:
-        #1. Create shortest paths between anomeric carbons to get O's and bond types.
-        
-        #C1s = [ x['C1'] for x in ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
-        #self.dih_atoms = [] ; self.dih = [] 
-
-        #for at in range(len(C1s)-1):
-        #
-        #    self.dih_atoms.append({})
-        #    at1 = at+1 
-        #    path = nx.shortest_path(cm, C1s[at], C1s[at1])
-        #    n=2 ; 
-        #    self.dih_atoms[at]['C1l'] = C1s[at1]
-        #    self.dih_atoms[at]['O']  = self.ring_atoms[at1]['O']
-        #    #print(path)
-        #    while n < len(path):
-        #        if path[-n] in self.ring_atoms[at].values(): 
-        #            linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(path[-n])])[-1]
-        #            #if linker_type == '5': linker_type = '6' 
-        #            self.dih_atoms[at]['C'+linker_type+'l'] = path[-n]
-        #            C_phi = 'C'+str(int(linker_type)-1)
-        #            #if linker_type == 5: linker_type += 1 
-        #            self.dih_atoms[at][C_phi] = self.ring_atoms[at][C_phi]
-        #            break
-        #        else: 
-        #            if n == 2: 
-        #                self.dih_atoms[at]['Ol']  = path[-n]
-        #            elif n == 3: 
-        #                self.dih_atoms[at]['C6']  = path[-n]
-        #        n=n+1
-
-        #    dih = self.dih_atoms[at] 
-        #    adj = adjacent_atoms(self.conn_mat, dih['C1l']) 
-        #    for at in adj:
-        #        if self.atoms[at] == 'H': 
-        #            list_of_atoms = [ dih['O'], dih['C1l'], dih['Ol'], at ] 
-        #    idih = measure_dihedral( self, list_of_atoms )[0] 
-        #    if linker_type == '5': linker_type = '6'
-        #    if idih < 0.0: self.dih.append('b1'+linker_type)
-        #    else: self.dih.append('a1'+linker_type)
 
         C1s = [ x['C1'] for x in ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
         cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
@@ -517,6 +478,27 @@ class Conformer():
         self.ga_vector = []
         for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
         for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
+
+    def update_topol(self, models):
+
+        conf_links = [ self.graph.edges[e]['linker_type'] for e in self.graph.edges]
+        self.topol = 'new'
+        for m in models:
+            m_links = [ m.graph.edges[e]['linker_type'] for e in m.graph.edges ]
+            mat = self.conn_mat - m.conn_mat 
+            if not np.any(mat) and conf_links == m_links : 
+                self.topol = m.topol
+                return 0  
+            elif conf_links == m_links: 
+                atc = 0
+                acm = np.argwhere(np.abs(mat) == 1)
+                for at in acm:
+                    if self.atoms[at[0]] == 'H' or self.atoms[at[1]] == 'H': atc += 1 
+                if atc == len(acm):
+                        self.topol = m.topol+'_Hs'
+                        return 0  
+
+        return 0 
 
     def show_xyz(self, width=600, height=600):
 
