@@ -19,12 +19,15 @@ from subprocess import Popen, PIPE
 from .utilities import *
 import networkx as nx
 from operator import itemgetter, attrgetter
+import matplotlib.pyplot as plt
 
 class Conformer():
 
-    def __init__(self, _id):
+    def __init__(self, topol):
 
-        self._id = _id 
+        self._id = topol
+        self.topol = topol
+
 
     def load_model(self, file_path):
 
@@ -94,6 +97,20 @@ class Conformer():
 
         os.chdir(cwd)
         return gauss_job.returncode
+
+    def calculate_ccs(self, temp_dir, method = 'pa', accuracy = 1):
+        
+        with open( temp_dir + '/sig.xyz','w') as ccs:
+            ccs.write("{0:3d}\n".format(self.NAtoms))
+            for at, xyz in zip(self.atoms, self.xyz):
+                ccs.write("{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] ))
+            ccs.close()
+        if method == 'pa': 
+            ccs_job = Popen("sigma -f xyz -i " + str(temp_dir + '/sig.xyz') +' -n ' +  str(accuracy) + " -p /home/matma/bin/sigma-parameters.dat", shell=True, stdout=PIPE, stderr=PIPE)
+            #out, err = ccs_job.communicate()
+            for line in ccs_job.stdout.readlines():
+                #print (line)
+                if re.search('Average PA', line.decode('utf-8')): self.ccs  = float(line.decode('utf-8').split()[4])
 
     def load_log(self, file_path):
 
@@ -413,8 +430,12 @@ class Conformer():
                         if linker_type == '5': linker_type = '6'
                         if self.atoms[linker_atoms[4]] == 'N':
                             linker_type += 'N' 
-                        if idih < 0.0: linkage = 'b1'+linker_type
-                        else: linkage = 'a1'+linker_type
+                        if idih < 0.0:
+                            if 'O6' in self.graph.nodes[r2]['ring_atoms'].keys(): linkage = 'b1'+linker_type
+                            else: linkage = 'a1'+linker_type
+                        elif idih >= 0.0: 
+                            if 'O6' in self.graph.nodes[r2]['ring_atoms'].keys(): linkage = 'a1'+linker_type
+                            else: linkage = 'b1'+linker_type
                         self.graph.add_edge(r1, r2, linker_atoms = linker_atoms, linker_type = linkage ) 
 
         #Delete C6 bond if 16-linkage if present:
@@ -497,11 +518,11 @@ class Conformer():
         for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
         for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
 
-    def show_xyz(self, width=400, height=400):
+    def show_xyz(self, width=600, height=600):
 
         import py3Dmol as p3D
 
-        XYZ = "84\n{0:s}\n".format(self._id)
+        XYZ = "{0:3d}\n{1:s}\n".format(self.NAtoms, self._id)
         for at, xyz in zip(self.atoms, self.xyz):
             XYZ += "{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] )
         xyzview = p3D.view(width=width,height=height)
@@ -561,7 +582,7 @@ class Conformer():
         import matplotlib.pyplot as plt
         from matplotlib.ticker import NullFormatter
 
-        fig, ax = plt.subplots(1, figsize=(8,2))
+        fig, ax = plt.subplots(1, figsize=(10,3))
 
         #left, width = 0.02, 0.98 ; bottom, height = 0.15, 0.8
         #ax  = [left, bottom, width, height ]
