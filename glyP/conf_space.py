@@ -19,13 +19,14 @@ class Space(list):
     _kT=0.0019872036*_temp #boltzmann
     _Ha2kcal=627.5095  
 
-    def __init__(self, path):
+    def __init__(self, path, load=True):
 
         self.path = path
         try: os.makedirs(self.path)
         except: 
-            print("{0:10s} directory already exists, load existing data".format(path))
-            self.load_dir(path, None)
+            if load == True: 
+                print("{0:10s} directory already exists, load existing data".format(path))
+                self.load_dir(path, None)
 
     def __str__(self):
          
@@ -40,13 +41,36 @@ class Space(list):
             for conf in self:  print ("%20s%20.8f" %(conf._id, conf.E))
 
 
-        return '' 
+        return ''
+
+    def __getitem__(self, select):
+
+        if isinstance(select, int):
+            rval = list.__getitem__(self, select)
+            return rval
+
+        elif isinstance(select, (list, tuple)):
+            rval = [ list.__getitem__(self, i) for i in select ] 
+
+        elif isinstance(select, slice):
+            rval = super(Space, self).__getitem__(select)
+
+        rret = Space(self.path, load = False)
+        rret.__dict__ = self.__dict__.copy()
+        for conf in rval: rret.append(conf)
+        return rret
+
+    def __getslice__(self, i, j):
+
+        return self.__getitem(slice(i,j))
 
     def load_dir(self, path, topol=None):
 
+        print("Loading {0:30s}".format(path))
         for (root, dirs, files) in os.walk('./'+path):
+            #print (root, dirs, files)
             for dirname in dirs:
-                #print (dirname)
+                #print(dirname)
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.log'):
@@ -88,7 +112,7 @@ class Space(list):
 
         if len(self) != 0: 
             for conf in self: 
-                conf.topol = 'new'
+                conf.topol = 'unknown'
                 conf_links = [ conf.graph.edges[e]['linker_type'] for e in conf.graph.edges]
                 for m in self.models:
                     m_links = [ m.graph.edges[e]['linker_type'] for e in m.graph.edges ]
@@ -169,18 +193,21 @@ class Space(list):
                 return None 
         else:
             return None 
-        if hasattr(self[0], 'Frel'): print ("%20s%20s%8s%8s%8s" %('id', 'topol',  'E', 'H', 'F'))
-        else:  print ("%20s%20s%8s" %('id', 'topol',  'E'))
+        if hasattr(self[0], 'Frel'): print ("%20s%10s%20s%8s%8s%8s" %('id', 'topol',  'F-abs', 'E', 'H', 'F'))
+        else:  print ("%20s%10s%20s%8s" %('id', 'topol',  'E-abs', 'E'))
+
         for n, conf in enumerate(self): 
             if n == alive: print("---------------------------------")
             if hasattr(self[0], 'Frel'):
-                print ("%20s%20s%8.2f%8.2f%8.2f" %(conf._id, conf.topol, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
+               print("%20s%10s%20.8f%8.2f%8.2f%8.2f" %(conf._id, conf.topol, conf.F, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
             else: 
-               print("%20s%20s%8.2f" %(conf._id, conf.topol, conf.Erel*self._Ha2kcal), end='')
+               print("%20s%10s%20.8f%8.2f" %(conf._id, conf.topol, conf.E, conf.Erel*self._Ha2kcal), end='')
+
             if hasattr(self[0], 'ccs'):
                 print("{0:8.1f}".format(conf.ccs), end='')
             if hasattr(self[0], 'anomer'):
                 print("{0:>10s} ".format(conf.anomer[0]), end='')
+
             if hasattr(self[0], 'graph'):
                 for e in conf.graph.edges:
                     edge = conf.graph.edges[e]
@@ -234,12 +261,29 @@ class Space(list):
         for conf in self: conf.measure_glycosidic()
 
 
-    def plot_ccs(self, energy_function='E', ccs_exp=141, xmin=130., xmax=150., ymin = -1., ymax=30., xlabel = 'CCS$^{PA}$ [$\AA{}^2$]', ylabel = '$\Delta$F PBE0+D3 [kcal/mol]' ):
+    def plot_ccs(self, energy_function='E', ccs_exp=141, xmin=130., xmax=150., ymin = -1., ymax=30., xlabel = 'CCS$^{PA}$ [$\AA{}^2$]'):
 
         from matplotlib.ticker import NullFormatter, FormatStrFormatter
-        color = { 'LeA': '#a6cee3', 'LeX': '#1f78b4', 'BGH-1': '#b2df8a', 'BGH-2': '#33a02c', 'a16':'#fb9a99', 'b16':'#e31a1c', 'a14':'#fdbf6f' , 'b14': '#ff7f00', 'a13': '#cab2d6', 'b13': '#6a3d9a','a16n':'#ffff99','b16n':'#b15928', 'a12n': '#000000'}
-        marker ={ 'LeX': 'o',       'LeA': 'o'      , 'BGH-2': 'o'      , 'BGH-1':'o'      , 'a16': 'o',       'b16':'o'      , 'a14': 'o'      , 'b14': 'o'      , 'a13': 'o'      , 'b13': 'o'      ,'a16n':'o'      ,'b16n':'o'      , 'a12n': 'o'      }
+        #color = { 'LeA': '#a6cee3', 'LeX': '#1f78b4', 'BGH-1': '#b2df8a', 'BGH-2': '#33a02c', 'a16':'#fb9a99', 'b16':'#e31a1c', 'a14':'#fdbf6f' , 'b14': '#ff7f00', 'a13': '#cab2d6', 'b13': '#6a3d9a','a16n':'#ffff99','b16n':'#b15928', 'a12n': '#000000'}
+        #marker ={ 'LeX': 'o',       'LeA': 'o'      , 'BGH-2': 'o'      , 'BGH-1':'o'      , 'a16': 'o',       'b16':'o'      , 'a14': 'o'      , 'b14': 'o'      , 'a13': 'o'      , 'b13': 'o'      ,'a16n':'o'      ,'b16n':'o'      , 'a12n': 'o'      }
 
+        color =  [ '#a6cee3', '#1f78b4', '#b2df8a','#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f' , '#ff7f00', '#cab2d6', '#6a3d9a', '#ffff99','#b15928']
+        labels = [None] * len(self)
+        for i,conf in enumerate(self):
+            labels[i] = conf.topol
+        labels = list(set(labels))
+        Hs_label = []
+        if 'unknown' in labels:  
+            labels.remove('unknown') 
+            Hs_label.append('unknown')
+        for l in labels: 
+            if l[-3:] == '_Hs': 
+                labels.remove(l) 
+                Hs_label.append(l)
+        color = dict(zip(labels, color))
+        for l in Hs_label: 
+            color[l] = '#000000'
+        print(color)
 
         #['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']
         nullfmt = NullFormatter()         # no labels
@@ -248,13 +292,16 @@ class Space(list):
         ax.plot([ccs_exp, ccs_exp], [ymin, ymax], 'k--')
         for conf in self:
             if energy_function == 'E':
-                ax.scatter(conf.ccs, conf.Erel*self._Ha2kcal, s=20, color=color[conf.topol], marker=marker[conf.topol], label=conf.topol)
+                ax.scatter(conf.ccs, conf.Erel*self._Ha2kcal, s=20, color=color[conf.topol], marker='o', label=conf.topol)
             elif energy_function == 'F':
-                ax.scatter(conf.ccs, conf.Frel*self._Ha2kcal, s=20, color=color[conf.topol], marker=marker[conf.topol], label=conf.topol)
+                ax.scatter(conf.ccs, conf.Frel*self._Ha2kcal, s=20, color=color[conf.topol], marker='o', label=conf.topol)
 
         handles, labels = plt.gca().get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
         ax.legend(by_label.values(), by_label.keys(), fontsize=18)
+
+        if   energy_function == 'E' : ylabel = '$\Delta$E PBE0+D3 [kcal/mol]'
+        elif energy_function == 'F':  ylabel = '$\Delta$F PBE0+D3 [kcal/mol]'
 
         ax.set_ylabel(ylabel, fontsize=18) ; ax.set_xlabel(xlabel, fontsize=18)
         yaxis = np.linspace(ymin+1, ymax, 7)
@@ -272,9 +319,8 @@ class Space(list):
 
         ax.plot([xmin-2.5,xmax+2.5], [ymin+0.05, ymin+0.05], 'k', lw=1.5)
         ax.plot([xmin-2.5+0.1, xmin-2.5+0.1], [0,ymax], 'k', lw=1.5)
-        #ax.legend()
-        #fig.show()
-        #fig.savefig(output, dpi=200, transparent=True)
+        fig.tight_layout()
+        fig.savefig('/'.join([self.path, 'ccs_plot.png']), dpi=200, transparent=True)
 
 
 

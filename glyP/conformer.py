@@ -31,7 +31,7 @@ class Conformer():
     def load_model(self, file_path):
 
         self.NAtoms = None
-        self._id    = str(file_path).split('/')[1]
+        self._id    = str(file_path).split('/')[-2]
         self.topol = self._id
         geom = [] ; atoms = []
 
@@ -132,7 +132,8 @@ class Conformer():
         job_opt = False ; job_freq = False ; job_optfreq = False ; job_sp = False ; job = 0
 
         self.NAtoms = None
-        self._id    = str(file_path).split('/')[1]
+        self._id    = file_path.split('/')[-2]
+        self.path   = '/'.join(file_path.split('/')[:-1])
 
         for line in open(file_path, 'r').readlines():
 
@@ -229,7 +230,7 @@ class Conformer():
 
         '''Prints a some molecular properties'''
 
-        print ("%20s    NAtoms=%5d" %(self._id, self.NAtoms))
+        print ("%20s%20s   NAtoms=%5d" %(self._id, self.topol, self.NAtoms))
         if hasattr(self, 'F'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
         else: print("E=%20.4f" %( self.E))
         for n  in self.graph.nodes:
@@ -287,6 +288,14 @@ class Conformer():
                     if dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
                 elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
 
+        for at1 in range(Nat):
+            if self.atoms[at1] == 'H' and np.sum(self.conn_mat[at1,:]) > 1:
+                    at2list = np.where(self.conn_mat[at1,:] == 1) 
+                    at2dist = [ round(get_distance(self.xyz[at1], self.xyz[at2x]), 3) for at2x in at2list[0]]
+                    #print (at2list,list(at2list[0]),  at2dist)
+                    at2 = at2list[0][at2dist.index(min(at2dist))]
+                    self.conn_mat[at1, at2] = 0 ; self.conn_mat[at2, at1] = 0
+
     def assign_atoms(self):
 
         self.graph = nx.DiGraph()
@@ -298,6 +307,8 @@ class Conformer():
         ring_atoms = []
         n = 0
         for r in cycles_in_graph:
+            if len(r) != 6: continue #Non six-membered rings not implemented
+
             ring_atoms.append({}) #dictionary, probably atom desc
             # C5 and O
             rd = ring_atoms[n] # rd = ring dicitionary
@@ -482,7 +493,7 @@ class Conformer():
     def update_topol(self, models):
 
         conf_links = [ self.graph.edges[e]['linker_type'] for e in self.graph.edges]
-        self.topol = 'new'
+        self.topol = 'unknown'
         for m in models:
             m_links = [ m.graph.edges[e]['linker_type'] for e in m.graph.edges ]
             mat = self.conn_mat - m.conn_mat 
