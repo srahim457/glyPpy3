@@ -19,17 +19,20 @@ from subprocess import Popen, PIPE
 from .utilities import *
 import networkx as nx
 from operator import itemgetter, attrgetter
+import matplotlib.pyplot as plt
 
 class Conformer():
 
-    def __init__(self, _id):
+    def __init__(self, topol):
 
-        self._id = _id 
+        self._id = topol
+        self.topol = topol
 
     def load_model(self, file_path):
 
         self.NAtoms = None
-        self._id    = str(file_path).split('/')[1]
+        self._id    = str(file_path).split('/')[-2]
+        self.topol = self._id
         geom = [] ; atoms = []
 
         for n, line in enumerate(open(file_path, 'r').readlines()):
@@ -49,16 +52,18 @@ class Conformer():
         if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3':
             theory['disp'] = 'EmpiricalDispersion=GD3'
         else: 
-            theory['disp'] = ' ' 
-        try:
-            outdir = '/'.join([output, self._id])
-            os.makedirs(outdir)
-            self.outdir = outdir
-        except: 
-            print("id already exists")
-            sys.exit(1)
+            theory['disp'] = ' '
 
+        outdir = '/'.join([output, self._id])
         input_file = outdir + '/input.com'
+        self.outdir = outdir
+        try:
+            os.makedirs(outdir)
+        except:
+            for ifiles in os.walk(outdir):
+                for filename in ifiles[2]:
+                    os.remove('/'.join([outdir,filename])) 
+
         f = open(input_file, 'w')
         f.write('%nproc=' + str(theory['nprocs'])+'\n')
         f.write('%mem='+theory['mem']+'\n')
@@ -73,7 +78,7 @@ class Conformer():
         f.write(' ')
         f.close()
 
-    def run_gaussian(self):
+    def run_gaussian(self, mpi=False):
 
         try: hasattr(self, 'outdir')
         except:
@@ -81,11 +86,32 @@ class Conformer():
             sys.exit(1)
 
         cwd=os.getcwd(); os.chdir(self.outdir)
-        with open('input.log', 'w') as out: 
-            gauss_job = Popen("g16 input.com ", shell=True, stdout=out, stderr=out)
+
+        with open('input.log', 'w') as out:
+
+            if mpi == True: 
+                gauss_job = Popen("mpiexec -n " + str(theory['nprocs']) + "g16 input.com ", shell=True, stdout=out, stderr=out)
+            elif mpi == False: 
+                gauss_job = Popen("g16 input.com ", shell=True, stdout=out, stderr=out)
+
             gauss_job.wait()
 
         os.chdir(cwd)
+        return gauss_job.returncode
+
+    def calculate_ccs(self, temp_dir, method = 'pa', accuracy = 1):
+        
+        with open( temp_dir + '/sig.xyz','w') as ccs:
+            ccs.write("{0:3d}\n".format(self.NAtoms))
+            for at, xyz in zip(self.atoms, self.xyz):
+                ccs.write("{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] ))
+            ccs.close()
+        if method == 'pa': 
+            ccs_job = Popen("sigma -f xyz -i " + str(temp_dir + '/sig.xyz') +' -n ' +  str(accuracy) + " -p /home/matma/bin/sigma-parameters.dat", shell=True, stdout=PIPE, stderr=PIPE)
+            #out, err = ccs_job.communicate()
+            for line in ccs_job.stdout.readlines():
+                #print (line)
+                if re.search('Average PA', line.decode('utf-8')): self.ccs  = float(line.decode('utf-8').split()[4])
 
     def load_log(self, file_path):
 
@@ -98,6 +124,7 @@ class Conformer():
         normal_mode_flag=False
         freq_flag = False
         read_geom = False
+        opt_flag = False
 
         #temprorary variables to hold the data
         freq = [] ; ints = [] ; vibs = [] ; geom = [] ; atoms = []
@@ -105,13 +132,13 @@ class Conformer():
         job_opt = False ; job_freq = False ; job_optfreq = False ; job_sp = False ; job = 0
 
         self.NAtoms = None
-        self._id    = str(file_path).split('/')[1]
+        self._id    = file_path.split('/')[-2]
+        self.path   = '/'.join(file_path.split('/')[:-1])
 
         for line in open(file_path, 'r').readlines():
 
                 if re.search('^ #', line) and job == 0:
                     if "opt" in line:
-
                         if "freq" in line: 
                             job_optfreq = True ; job += 1 
                             #print("Reading optfreq")
@@ -176,9 +203,9 @@ class Conformer():
 
                     if re.search('SCF Done',   line): E = float(line.split()[4])
                     if re.search('Optimization completed.', line): 
-                        self.E = E ; freq_Flag = True
-                    elif freq_flag == True and re.search('Coordinates', line) : read_geom = True
-                    elif freq_flag == True and read_geom == True and re.search('^\s*.\d', line):
+                         self.E = E ; opt_flag = True  
+                    elif opt_flag == True and re.search('Coordinates', line) : read_geom = True
+                    elif opt_flag == True and read_geom == True and re.search('^\s*.\d', line):
                          #geom.append(map(float, line.split()[3:6])) 
                          #convert to a parse directly into list rather than map
                          geom.append([float(x) for x in line.split()[3:6]])
@@ -190,10 +217,12 @@ class Conformer():
 
                     print("No idea what you're dong")
 
-        self.Freq = np.array( freq ) 
-        self.Ints = np.array( ints )
-        self.Vibs=np.zeros((self.NVibs, self.NAtoms, 3))
-        for i in range(self.NVibs): self.Vibs[i,:,:] = vibs[i]
+        if freq_flag == True: 
+            self.Freq = np.array( freq ) 
+            self.Ints = np.array( ints )
+            self.Vibs=np.zeros((self.NVibs, self.NAtoms, 3))
+            for i in range(self.NVibs): self.Vibs[i,:,:] = vibs[i]
+
         self.xyz = np.array(geom)
         self.atoms = atoms
 
@@ -201,17 +230,29 @@ class Conformer():
 
         '''Prints a some molecular properties'''
 
-        print ("%20s    NAtoms=%5d" %(self._id, self.NAtoms))
-        if hasattr(self, 'E'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
+        print ("%20s%20s   NAtoms=%5d" %(self._id, self.topol, self.NAtoms))
+        if hasattr(self, 'F'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
+        else: print("E=%20.4f" %( self.E))
         for n  in self.graph.nodes:
             ring = self.graph.nodes[n]
-            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='\n')
+            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='')
+            if 'c6_atoms' in ring:
+                print("{0:10.1f}".format(ring['c6_dih']), end = '\n')
+            else:
+                print('')
+
         for e in self.graph.edges:
             edge = self.graph.edges[e]
+
             if len(edge['dihedral']) == 2: 
-                 print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1]), end='\n' )
-            if len(edge['dihedral']) == 3: 
-                 print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f} {4:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1], edge['dihedral'][2]), end='\n')
+                print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1]), end='\n' )
+
+            elif len(edge['dihedral']) == 3: 
+                print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f} {4:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1], edge['dihedral'][2]), end='\n')
+
+            elif len(edge['dihedral']) == 4: 
+                print ("Link {0}:  {1:6s} {2:6.1f} {3:6.1f} {4:6.1f} {5:6.1f}".format(e, edge['linker_type'], edge['dihedral'][0], edge['dihedral'][1], edge['dihedral'][2], edge['dihedral'][3]), end='\n')
+
                 #for at in ['C1', 'C2', 'C3', 'C4', 'C5', 'O' ]: 
                 #    print ("%3s:%3s" %(at, self.ring_atoms[n][at]), end='')
                 #print()
@@ -247,6 +288,14 @@ class Conformer():
                     if dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
                 elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
 
+        for at1 in range(Nat):
+            if self.atoms[at1] == 'H' and np.sum(self.conn_mat[at1,:]) > 1:
+                    at2list = np.where(self.conn_mat[at1,:] == 1) 
+                    at2dist = [ round(get_distance(self.xyz[at1], self.xyz[at2x]), 3) for at2x in at2list[0]]
+                    #print (at2list,list(at2list[0]),  at2dist)
+                    at2 = at2list[0][at2dist.index(min(at2dist))]
+                    self.conn_mat[at1, at2] = 0 ; self.conn_mat[at2, at1] = 0
+
     def assign_atoms(self):
 
         self.graph = nx.DiGraph()
@@ -258,6 +307,8 @@ class Conformer():
         ring_atoms = []
         n = 0
         for r in cycles_in_graph:
+            if len(r) != 6: continue #Non six-membered rings not implemented
+
             ring_atoms.append({}) #dictionary, probably atom desc
             # C5 and O
             rd = ring_atoms[n] # rd = ring dicitionary
@@ -268,8 +319,11 @@ class Conformer():
                     for at2 in np.where(self.conn_mat[at] == 1)[0]:
                         if atom_names[at2] == 'C' and at2 not in r:
                             rd['C5'] = at
-            #
-            for at in rd.values(): r.remove(at)
+                            rd['C6'] = at2 
+                            for at3 in adjacent_atoms(self.conn_mat, rd['C6']):
+                                if atom_names[at3] == 'O': rd['O6'] = at3
+
+            for at in [rd['O'], rd['C5']]: r.remove(at)
             for at in r:
                 if self.conn_mat[at][rd['O']] == 1: rd['C1'] = at
                 elif self.conn_mat[at][rd['C5']] == 1: rd['C4'] = at
@@ -295,49 +349,14 @@ class Conformer():
 
         for n, i in enumerate(ring_atoms): 
             self.graph.add_node(n, ring_atoms = i)
-
-        #print(self.graph.nodes)
-        #print(self.graph.number_of_nodes())
-        #identify bonds:
-        #1. Create shortest paths between anomeric carbons to get O's and bond types.
-        
-        #C1s = [ x['C1'] for x in ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
-        #self.dih_atoms = [] ; self.dih = [] 
-
-        #for at in range(len(C1s)-1):
-        #
-        #    self.dih_atoms.append({})
-        #    at1 = at+1 
-        #    path = nx.shortest_path(cm, C1s[at], C1s[at1])
-        #    n=2 ; 
-        #    self.dih_atoms[at]['C1l'] = C1s[at1]
-        #    self.dih_atoms[at]['O']  = self.ring_atoms[at1]['O']
-        #    #print(path)
-        #    while n < len(path):
-        #        if path[-n] in self.ring_atoms[at].values(): 
-        #            linker_type = (list(self.ring_atoms[at].keys())[list(self.ring_atoms[at].values()).index(path[-n])])[-1]
-        #            #if linker_type == '5': linker_type = '6' 
-        #            self.dih_atoms[at]['C'+linker_type+'l'] = path[-n]
-        #            C_phi = 'C'+str(int(linker_type)-1)
-        #            #if linker_type == 5: linker_type += 1 
-        #            self.dih_atoms[at][C_phi] = self.ring_atoms[at][C_phi]
-        #            break
-        #        else: 
-        #            if n == 2: 
-        #                self.dih_atoms[at]['Ol']  = path[-n]
-        #            elif n == 3: 
-        #                self.dih_atoms[at]['C6']  = path[-n]
-        #        n=n+1
-
-        #    dih = self.dih_atoms[at] 
-        #    adj = adjacent_atoms(self.conn_mat, dih['C1l']) 
-        #    for at in adj:
-        #        if self.atoms[at] == 'H': 
-        #            list_of_atoms = [ dih['O'], dih['C1l'], dih['Ol'], at ] 
-        #    idih = measure_dihedral( self, list_of_atoms )[0] 
-        #    if linker_type == '5': linker_type = '6'
-        #    if idih < 0.0: self.dih.append('b1'+linker_type)
-        #    else: self.dih.append('a1'+linker_type)
+        for n in self.graph.nodes:
+            if 'O6' not in self.graph.nodes[n]['ring_atoms'].keys(): pass 
+            else: 
+               atoms = [] 
+               for at in ['O', 'C5', 'C6', 'O6']:
+                    atoms.append(self.graph.nodes[n]['ring_atoms'][at])
+               self.graph.nodes[n]['c6_atoms'] = atoms
+               self.graph.nodes[n]['c6_dih'] = measure_dihedral(self, atoms)[0]
 
         C1s = [ x['C1'] for x in ring_atoms] #Sorted list of C1s, first C1 is reducing end. 
         cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
@@ -381,9 +400,25 @@ class Conformer():
                                 list_of_atoms = linker_atoms[:3] + [at]
                         idih = measure_dihedral( self, list_of_atoms )[0]
                         if linker_type == '5': linker_type = '6'
-                        if idih < 0.0: linkage = 'b1'+linker_type
-                        else: linkage = 'a1'+linker_type
+                        if self.atoms[linker_atoms[4]] == 'N':
+                            linker_type += 'N' 
+                        if idih < 0.0:
+                            if 'O6' in self.graph.nodes[r2]['ring_atoms'].keys(): linkage = 'b1'+linker_type
+                            else: linkage = 'a1'+linker_type
+                        elif idih >= 0.0: 
+                            if 'O6' in self.graph.nodes[r2]['ring_atoms'].keys(): linkage = 'a1'+linker_type
+                            else: linkage = 'b1'+linker_type
                         self.graph.add_edge(r1, r2, linker_atoms = linker_atoms, linker_type = linkage ) 
+
+        #Delete C6 bond if 16-linkage if present:
+        for n in self.graph.nodes:
+            node = self.graph.nodes[n]
+            edge = self.graph.out_edges(n)
+            if len(edge) == 0: break
+            #print(edge)
+            for e in edge:
+                if self.graph.edges[e]['linker_type'][-2:] == '16': 
+                    del node['c6_atoms'] ; del node['c6_dih']
 
         #determine anomaricity of the redicing end: 
         adj = adjacent_atoms(self.conn_mat, self.graph.nodes[0]['ring_atoms']['C1'])
@@ -397,26 +432,50 @@ class Conformer():
 
         #print (self.dih_atoms, self.dih, self.anomer)
 
+    def measure_c6(self): 
+
+        for n in self.graph.nodes:
+            if 'c6_atoms' in self.graph.nodes[n]:
+                self.graph.nodes[n]['c6_dih'] = measure_dihedral(self, self.graph.nodes[n]['c6_atoms'])[0]
+
+    def set_c6(self, ring, dih):
+
+        if hasattr(self.graph.nodes[ring], 'c6_atoms'):
+            atoms = self.graph.nodes[ring]['c6_dih']
+            set_dihedral(self, atoms, dih)
+        self.measure_c6()
+
     def measure_glycosidic(self):
 
         for e in self.graph.edges:
             atoms = self.graph.edges[e]['linker_atoms']
             phi, ax = measure_dihedral(self, atoms[:4])
             psi, ax = measure_dihedral(self, atoms[1:5])
-            if len(atoms) == 6: 
+
+            if len(atoms) == 6: #1-6 linkage
                 omega, ax = measure_dihedral(self, atoms[2:6])
                 self.graph.edges[e]['dihedral'] = [phi, psi, omega]
+
+            elif len(atoms) == 7: # linkage at NAc
+                omega, ax = measure_dihedral(self, atoms[2:6])
+                gamma, ax = measure_dihedral(self, atoms[3:7])
+                self.graph.edges[e]['dihedral'] = [phi, psi, omega, gamma]
+
             else: self.graph.edges[e]['dihedral'] = [phi, psi]
 
-    def set_glycosidic(self, bond, phi, psi, omega=None):
+    def set_glycosidic(self, bond, phi, psi, omega=None, gamma=None):
 
         #atoms = sort_linkage_atoms(self.dih_atoms[bond])
-        atoms = self.graph.edges[bond]
+        atoms = self.graph.edges[bond]['linker_atoms']
         set_dihedral(self, atoms[:4], phi)
         set_dihedral(self, atoms[1:5], psi)
+
         if omega != None: 
-            set_dihedral(self, atoms[2:], omega)
-        measure_glycosidic()
+            set_dihedral(self, atoms[2:6], omega)
+        if gamma != None: 
+            set_dihedral(self, atoms[3:7], gamma)
+
+        self.measure_glycosidic()
 
     def measure_ring(self):
 
@@ -431,11 +490,32 @@ class Conformer():
         for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
         for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
 
-    def show_xyz(self, width=400, height=400):
+    def update_topol(self, models):
+
+        conf_links = [ self.graph.edges[e]['linker_type'] for e in self.graph.edges]
+        self.topol = 'unknown'
+        for m in models:
+            m_links = [ m.graph.edges[e]['linker_type'] for e in m.graph.edges ]
+            mat = self.conn_mat - m.conn_mat 
+            if not np.any(mat) and conf_links == m_links : 
+                self.topol = m.topol
+                return 0  
+            elif conf_links == m_links: 
+                atc = 0
+                acm = np.argwhere(np.abs(mat) == 1)
+                for at in acm:
+                    if self.atoms[at[0]] == 'H' or self.atoms[at[1]] == 'H': atc += 1 
+                if atc == len(acm):
+                        self.topol = m.topol+'_Hs'
+                        return 0  
+
+        return 0 
+
+    def show_xyz(self, width=600, height=600):
 
         import py3Dmol as p3D
 
-        XYZ = "84\n{0:s}\n".format(self._id)
+        XYZ = "{0:3d}\n{1:s}\n".format(self.NAtoms, self._id)
         for at, xyz in zip(self.atoms, self.xyz):
             XYZ += "{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] )
         xyzview = p3D.view(width=width,height=height)
@@ -495,7 +575,7 @@ class Conformer():
         import matplotlib.pyplot as plt
         from matplotlib.ticker import NullFormatter
 
-        fig, ax = plt.subplots(1, figsize=(8,2))
+        fig, ax = plt.subplots(1, figsize=(10,3))
 
         #left, width = 0.02, 0.98 ; bottom, height = 0.15, 0.8
         #ax  = [left, bottom, width, height ]

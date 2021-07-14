@@ -19,12 +19,14 @@ class Space(list):
     _kT=0.0019872036*_temp #boltzmann
     _Ha2kcal=627.5095  
 
-    def __init__(self, path):
+    def __init__(self, path, load=True):
 
         self.path = path
         try: os.makedirs(self.path)
         except: 
-            print("{0:10s} directory already exists".format(path))
+            if load == True: 
+                print("{0:10s} directory already exists, load existing data".format(path))
+                self.load_dir(path, None)
 
     def __str__(self):
          
@@ -39,19 +41,47 @@ class Space(list):
             for conf in self:  print ("%20s%20.8f" %(conf._id, conf.E))
 
 
-        return '' 
+        return ''
 
-    def load_dir(self, path):
+    def __getitem__(self, select):
 
+        if isinstance(select, int):
+            rval = list.__getitem__(self, select)
+            return rval
+
+        elif isinstance(select, (list, tuple)):
+            rval = [ list.__getitem__(self, i) for i in select ] 
+
+        elif isinstance(select, slice):
+            rval = super(Space, self).__getitem__(select)
+
+        rret = Space(self.path, load = False)
+        rret.__dict__ = self.__dict__.copy()
+        for conf in rval: rret.append(conf)
+        return rret
+
+    def __getslice__(self, i, j):
+
+        return self.__getitem(slice(i,j))
+
+    def load_dir(self, path, topol=None):
+
+        print("Loading {0:30s}".format(path))
         for (root, dirs, files) in os.walk('./'+path):
+            #print (root, dirs, files)
             for dirname in dirs:
-                print (dirname)
+                #print(dirname)
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.log'):
-                            conf = Conformer('dummy')
-                            conf.load_log(path+'/'+dirname+'/'+filename)
-                            self.append(conf)
+                            for line in open('/'.join([path, dirname, filename]), 'r').readlines()[-10:]:
+                                if re.search('Normal',  line):
+                                    conf = Conformer(topol)
+                                    conf.load_log(path+'/'+dirname+'/'+filename)
+                                    conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+                                    conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
+                                    self.append(conf)
+                                    
 
     def load_exp(self, path, ir_resolution=1.0):
 
@@ -68,7 +98,7 @@ class Space(list):
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.xyz'):
-                            conf = Conformer('dummy')
+                            conf = Conformer(None)
                             conf.load_model(path+'/'+dirname+'/'+filename)
                             self.models.append(conf)
         self.Nmodels = len(self.models)
@@ -77,11 +107,32 @@ class Space(list):
             print("Analyze {0:10s}".format(conf._id))
             conf.ring = [] ; conf.ring_angle = [] ; conf.dih_angle = []
  
-            conf.connectivity_matrix(distXX=1.6, distXH=1.2)
-            conf.assign_atoms()
+            conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+            conf.assign_atoms() ; conf.measure_c6() ; conf.measure_ring() ; conf.measure_glycosidic()
 
-            conf.measure_ring()
-            conf.measure_glycosidic()
+        if len(self) != 0: 
+            for conf in self: 
+                conf.topol = 'unknown'
+                conf_links = [ conf.graph.edges[e]['linker_type'] for e in conf.graph.edges]
+                for m in self.models:
+                    m_links = [ m.graph.edges[e]['linker_type'] for e in m.graph.edges ]
+                    mat = conf.conn_mat - m.conn_mat
+                    if not np.any(mat) and conf_links == m_links :
+                        conf.topol = m.topol
+                        break
+                        #return 0
+                    elif conf_links == m_links: 
+                        atc = 0 
+                        acm = np.argwhere(np.abs(mat) == 1)
+                        for at in acm:
+                            if conf.atoms[at[0]] == 'H' or conf.atoms[at[1]] == 'H':
+                                atc += 1 
+                        if atc == len(acm):
+                                conf.topol = m.topol+'_Hs'
+                                break
+                    
+#                    if np.array_equal(conf.conn_mat, m.conn_mat) and conf_links == m_links : conf.topol = m.topol
+
 
 
     def set_theory(self, **kwargs):
@@ -114,39 +165,66 @@ class Space(list):
         references remainins conformers to this.'''
 
         Eref = 0.0 ; Fref = 0.0 ; Href = 0.0 
-        for conf in self: 
-              if energy_function == 'E' and  conf.E < Eref: 
-                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
-              elif energy_function == 'H' and  conf.H < Href: 
-                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
-              elif energy_function == 'F' and  conf.F < Fref: 
-                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
-        for conf in self: 
-              conf.Erel = conf.E -  Eref;  conf.Hrel = conf.H -  Href ;  conf.Frel = conf.F -  Fref
 
-    def print_relative(self):
-
-        try: hasattr(self[0], 'Erel')
-        except: 
-            print("run reference_to_zero first")
-            return None 
-
-        if hasattr(self[0], 'Frel'):
-            print ("%20s%20s%20s%20s" %('id', 'E [kcal/mol]', 'H [kcal/mol]', 'F [kac/mol]'))
+        if hasattr(self[0], 'F'):
             for conf in self:
-                print ("%20s%20.2f%20.2f%20.2f" %(conf._id, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
-                if hasattr(conf, 'dih'):  
-                    for d in conf.dih:  print ("%20s" %(d), end='')
-                    print(' ')
-                else: print (' ')
+                if energy_function == 'E' and  conf.E < Eref:
+                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
+                elif energy_function == 'H' and  conf.H < Href:
+                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
+                elif energy_function == 'F' and  conf.F < Fref:
+                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
+            for conf in self: 
+                conf.Erel = conf.E -  Eref;  conf.Hrel = conf.H -  Href ;  conf.Frel = conf.F -  Fref
+        else:
+            for conf in self:
+                if energy_function == 'E' and  conf.E < Eref:
+                    Eref = cp(conf.E)
 
-        else: 
-            print ("%20s%20s" %('id', 'E [kcal/mol]'))
-            for conf in self: print("%20s%20.2f" %(conf._id, conf.Erel*self._Ha2kcal))
+            for conf in self: 
+                conf.Erel = conf.E -  Eref
 
-        return ''
+    def print_relative(self, alive=None):
 
-    def gaussian_broadening(self, broaden=1):
+        if len(self) != 0:
+            try: hasattr(self[0], 'Erel')
+            except: 
+                print("run reference_to_zero first")
+                return None 
+        else:
+            return None 
+        if hasattr(self[0], 'Frel'): print ("%20s%10s%20s%8s%8s%8s" %('id', 'topol',  'F-abs', 'E', 'H', 'F'))
+        else:  print ("%20s%10s%20s%8s" %('id', 'topol',  'E-abs', 'E'))
+
+        for n, conf in enumerate(self): 
+            if n == alive: print("---------------------------------")
+            if hasattr(self[0], 'Frel'):
+               print("%20s%10s%20.8f%8.2f%8.2f%8.2f" %(conf._id, conf.topol, conf.F, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
+            else: 
+               print("%20s%10s%20.8f%8.2f" %(conf._id, conf.topol, conf.E, conf.Erel*self._Ha2kcal), end='')
+
+            if hasattr(self[0], 'ccs'):
+                print("{0:8.1f}".format(conf.ccs), end='')
+            if hasattr(self[0], 'anomer'):
+                print("{0:>10s} ".format(conf.anomer[0]), end='')
+
+            if hasattr(self[0], 'graph'):
+                for e in conf.graph.edges:
+                    edge = conf.graph.edges[e]
+                    print("{0:1d}->{1:1d}: {2:6s}".format(e[0], e[1], edge['linker_type']), end='')
+            print(' ')
+
+            #else: 
+                #print ("%20s%20s" %('id', 'E [kcal/mol]'))
+                #for conf in self: print("%20s%20.2f" %(conf._id, conf.Erel*self._Ha2kcal))
+
+        #return ''
+
+    def calculate_ccs(self, method = 'pa', accuracy = 1):
+
+        for conf in self:  conf.calculate_ccs(self.path, method=method, accuracy=accuracy)
+
+    def gaussian_broadening(self, broaden=3):
 
         ''' Performs gaussian broadening for the set'''
 
@@ -181,4 +259,74 @@ class Space(list):
 
         print('assigning dihs')
         for conf in self: conf.measure_glycosidic()
+
+
+    def plot_ccs(self, energy_function='E', ccs_exp=141, xmin=130., xmax=150., ymin = -1., ymax=30., xlabel = 'CCS$^{PA}$ [$\AA{}^2$]'):
+
+        from matplotlib.ticker import NullFormatter, FormatStrFormatter
+        #color = { 'LeA': '#a6cee3', 'LeX': '#1f78b4', 'BGH-1': '#b2df8a', 'BGH-2': '#33a02c', 'a16':'#fb9a99', 'b16':'#e31a1c', 'a14':'#fdbf6f' , 'b14': '#ff7f00', 'a13': '#cab2d6', 'b13': '#6a3d9a','a16n':'#ffff99','b16n':'#b15928', 'a12n': '#000000'}
+        #marker ={ 'LeX': 'o',       'LeA': 'o'      , 'BGH-2': 'o'      , 'BGH-1':'o'      , 'a16': 'o',       'b16':'o'      , 'a14': 'o'      , 'b14': 'o'      , 'a13': 'o'      , 'b13': 'o'      ,'a16n':'o'      ,'b16n':'o'      , 'a12n': 'o'      }
+
+        color =  [ '#a6cee3', '#1f78b4', '#b2df8a','#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f' , '#ff7f00', '#cab2d6', '#6a3d9a', '#ffff99','#b15928']
+        labels = [None] * len(self)
+        for i,conf in enumerate(self):
+            labels[i] = conf.topol
+        labels = list(set(labels))
+        Hs_label = []
+        if 'unknown' in labels:  
+            labels.remove('unknown') 
+            Hs_label.append('unknown')
+        for l in labels: 
+            if l[-3:] == '_Hs': 
+                labels.remove(l) 
+                Hs_label.append(l)
+        color = dict(zip(labels, color))
+        for l in Hs_label: 
+            color[l] = '#000000'
+        print(color)
+
+        #['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']
+        nullfmt = NullFormatter()         # no labels
+
+        fig, ax = plt.subplots(1, figsize=(6,10))
+        ax.plot([ccs_exp, ccs_exp], [ymin, ymax], 'k--')
+        for conf in self:
+            if energy_function == 'E':
+                ax.scatter(conf.ccs, conf.Erel*self._Ha2kcal, s=20, color=color[conf.topol], marker='o', label=conf.topol)
+            elif energy_function == 'F':
+                ax.scatter(conf.ccs, conf.Frel*self._Ha2kcal, s=20, color=color[conf.topol], marker='o', label=conf.topol)
+
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys(), fontsize=18)
+
+        if   energy_function == 'E' : ylabel = '$\Delta$E PBE0+D3 [kcal/mol]'
+        elif energy_function == 'F':  ylabel = '$\Delta$F PBE0+D3 [kcal/mol]'
+
+        ax.set_ylabel(ylabel, fontsize=18) ; ax.set_xlabel(xlabel, fontsize=18)
+        yaxis = np.linspace(ymin+1, ymax, 7)
+        xaxis = np.linspace(xmin, xmax, 5)
+        ax.set_xlim(xmin-2.5, xmax+2.5)
+        ax.set_ylim(ymin, ymax)
+        ax.set_xticks(xaxis); ax.set_yticks(yaxis)
+        ax.set_xticklabels(xaxis, fontsize='16'); ax.set_yticklabels(yaxis, fontsize='16')
+        ax.tick_params(axis='both', which='both', bottom=True, top=False, labelbottom=True, right=False, left=True, labelleft=True)
+        for s in ['top', 'right', 'left', 'bottom']: ax.spines[s].set_visible(False)
+        ax.xaxis.set_tick_params(direction='out')
+        ax.yaxis.set_tick_params(direction='out')
+        ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+        ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+
+        ax.plot([xmin-2.5,xmax+2.5], [ymin+0.05, ymin+0.05], 'k', lw=1.5)
+        ax.plot([xmin-2.5+0.1, xmin-2.5+0.1], [0,ymax], 'k', lw=1.5)
+        fig.tight_layout()
+        fig.savefig('/'.join([self.path, 'ccs_plot.png']), dpi=200, transparent=True)
+
+
+
+
+
+
+
+
 

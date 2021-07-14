@@ -58,18 +58,6 @@ def calculate_ring(xyz, ring_atoms):
     phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
     return phi, psi, R
 
-def sort_linkage_atoms(dih_atoms):
-
-    d = dih_atoms
-    if 'C2l'   in dih_atoms.keys(): at1=d['O'] ; at2=d['C1l']; at3=d['Ol']; at4=d['C2l']; at5=d['C1']
-    elif 'C3l' in dih_atoms.keys(): at1=d['O'] ; at2=d['C1l']; at3=d['Ol']; at4=d['C3l']; at5=d['C2']
-    elif 'C4l' in dih_atoms.keys(): at1=d['O'] ; at2=d['C1l']; at3=d['Ol']; at4=d['C4l']; at5=d['C3']
-    elif 'C5l' in dih_atoms.keys(): 
-        at1=d['O'] ; at2=d['C1l']; at3=d['Ol']; at4=d['C6']; at5=d['C5l'] ; at6=d['C4']
-        return [at1, at2, at3, at4, at5, at6] 
-
-    return [ at1, at2, at3, at4, at5]
-
 def determine_carried_atoms(at1, at2, conn_mat):
 
     """Find all atoms necessary to be carried over during rotation
