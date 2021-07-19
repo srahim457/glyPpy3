@@ -69,6 +69,10 @@ with open(output, 'w') as out:
         print("Finished initial-{0:02d} Date: {1:30s}".format(n, dtime()))
         print(GArun[n])
 
+        if GArun[n].Nmols > 1: 
+            print("{0:3d} molecules present, remove".format(GArun[n].Nmols)
+            del GArun[n] ; continue 
+
         if n > 0: 
             duplicate = False
             for i in range(n):
@@ -125,6 +129,11 @@ with open(output, 'w') as out:
         offspring.update_vector()
         print("Finished offspring-{0:02d} Date: {1:30s}".format(n, dtime()))
         print(offspring)
+
+        if offspring.Nmols > 1: 
+            print("{0:3d} molecules present, remove".format(offspring.Nmols)
+            del offspring ; continue 
+
 
         duplicate = False
         for i in range(N):

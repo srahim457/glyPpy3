@@ -296,12 +296,14 @@ class Conformer():
                     at2 = at2list[0][at2dist.index(min(at2dist))]
                     self.conn_mat[at1, at2] = 0 ; self.conn_mat[at2, at1] = 0
 
+        self.graph = nx.DiGraph()
+        cm = nx.graph.Graph(self.conn_mat)
+        if nx.is_connected(cm): self.Nmols = 1
+        else:
+            self.Nmols = nx.number_connected_components(cm)
+
     def assign_atoms(self):
 
-        self.graph = nx.DiGraph()
-
-        #Assign ring atoms: 
-        cm = nx.graph.Graph(self.conn_mat)
         cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
         atom_names = self.atoms
         ring_atoms = []

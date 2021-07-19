@@ -221,6 +221,20 @@ class Space(list):
 
         #return ''
 
+    def remove_duplicates(self, rmsd = 0.1):
+
+        to_be_removed = []
+        for i, conf1  in enumerate(self):
+            for j, conf2 in enumerate(self):
+                if j <= i : continue
+                if glyP.utilities.calculate_rmsd(conf1, conf2) < rmsd:
+                    to_be_removed.append(j)
+
+        to_be_removed.reverse() 
+        for rem in to_be_removed:
+            del self[rem]
+
+
     def calculate_ccs(self, method = 'pa', accuracy = 1):
 
         for conf in self:  conf.calculate_ccs(self.path, method=method, accuracy=accuracy)
