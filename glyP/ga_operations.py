@@ -39,6 +39,18 @@ def modify_ring(conf, ring, phi, psi):
 
 def cross_over(conf1, conf2):
 
+
+    #Compare the edges.
+    #if connectivity is identical, compare dihs angles, then exchange the information if different. 
+    #if conf1.graph.edges == conf2.graph.edges: 
+    #    for e1, e2 in zip(conf1.graph.edges, conf2.graph.edges):
+    #        if bond_distance(l1, conf1.graph.edges[e1]['dih'], conf2.graph.edges[e2]['dih'], 'l1') < 5.0:
+    #            pass
+    #        else:
+
+        
+
+
     #exchange glycosidic bond:
     bond = utilities.draw_random_int(len(conf1.dih))
     print("Modifying bond number {0:2d}".format(bond))

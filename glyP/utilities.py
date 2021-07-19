@@ -6,12 +6,18 @@ import sys, copy
 from scipy import interpolate
 from scipy.linalg import expm
 from optparse import OptionParser
+from datetime import datetime
 
 def error(msg):
    """ write error message and quit
    """
    sys.stderr.write(msg + "\n")
    sys.exit(3)
+
+def dtime():
+
+    now = datetime.now()
+    return now.strftime("%m/%d/%Y %H:%M:%S")
 
 def get_distance(at1, at2):
 

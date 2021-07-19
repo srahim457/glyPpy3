@@ -103,12 +103,13 @@ class Space(list):
                             self.models.append(conf)
         self.Nmodels = len(self.models)
 
+        print("Analyzing: ", end="")
         for conf in self.models:
-            print("Analyze {0:10s}".format(conf._id))
+            print("{0:>8s}".format(conf._id), end=",")
             conf.ring = [] ; conf.ring_angle = [] ; conf.dih_angle = []
- 
             conf.connectivity_matrix(distXX=1.65, distXH=1.25)
             conf.assign_atoms() ; conf.measure_c6() ; conf.measure_ring() ; conf.measure_glycosidic()
+        print('')
 
         if len(self) != 0: 
             for conf in self: 
