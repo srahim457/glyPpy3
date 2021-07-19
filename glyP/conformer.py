@@ -20,6 +20,7 @@ from .utilities import *
 import networkx as nx
 from operator import itemgetter, attrgetter
 import matplotlib.pyplot as plt
+import py3Dmol as p3D
 
 class Conformer():
 
@@ -39,10 +40,10 @@ class Conformer():
 
             if n == 0 and self.NAtoms == None: self.NAtoms = int(line)
             if n > 1:
-                 if len(line.split()) == 0: break 
-                 geom.append([float(x) for x in line.split()[1:4]])
-                 #atoms.append(element_symbol(line.split()[0]))
-                 atoms.append(line.split()[0])
+                if len(line.split()) == 0: break 
+                geom.append([float(x) for x in line.split()[1:4]])
+                if line.split()[0].isalpha(): atoms.append(line.split()[0])
+                else: atoms.append(element_symbol(line.split()[0]))
 
         self.xyz = np.array(geom)
         self.atoms = atoms
@@ -285,8 +286,8 @@ class Conformer():
                 dist = get_distance(self.xyz[at1], self.xyz[at2])
                 if at1 == at2: pass
                 elif (self.atoms[at1] == 'H' or self.atoms[at2] == 'H'):
-                    if dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
-                elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
+                    if dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1 
+                elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1   
 
         for at1 in range(Nat):
             if self.atoms[at1] == 'H' and np.sum(self.conn_mat[at1,:]) > 1:
@@ -296,7 +297,6 @@ class Conformer():
                     at2 = at2list[0][at2dist.index(min(at2dist))]
                     self.conn_mat[at1, at2] = 0 ; self.conn_mat[at2, at1] = 0
 
-        self.graph = nx.DiGraph()
         cm = nx.graph.Graph(self.conn_mat)
         if nx.is_connected(cm): self.Nmols = 1
         else:
@@ -304,7 +304,10 @@ class Conformer():
 
     def assign_atoms(self):
 
+        self.graph = nx.DiGraph()
+        cm = nx.graph.Graph(self.conn_mat)
         cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
+        #print(cycles_in_graph)
         atom_names = self.atoms
         ring_atoms = []
         n = 0
@@ -514,8 +517,6 @@ class Conformer():
         return 0 
 
     def show_xyz(self, width=600, height=600):
-
-        import py3Dmol as p3D
 
         XYZ = "{0:3d}\n{1:s}\n".format(self.NAtoms, self._id)
         for at, xyz in zip(self.atoms, self.xyz):

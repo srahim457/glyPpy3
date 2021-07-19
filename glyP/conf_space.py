@@ -107,7 +107,7 @@ class Space(list):
         for conf in self.models:
             print("{0:>8s}".format(conf._id), end=",")
             conf.ring = [] ; conf.ring_angle = [] ; conf.dih_angle = []
-            conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+            conf.connectivity_matrix(distXX=1.6, distXH=1.20)
             conf.assign_atoms() ; conf.measure_c6() ; conf.measure_ring() ; conf.measure_glycosidic()
         print('')
 
@@ -227,7 +227,7 @@ class Space(list):
         for i, conf1  in enumerate(self):
             for j, conf2 in enumerate(self):
                 if j <= i : continue
-                if glyP.utilities.calculate_rmsd(conf1, conf2) < rmsd:
+                if calculate_rmsd(conf1, conf2) < rmsd:
                     to_be_removed.append(j)
 
         to_be_removed.reverse() 
