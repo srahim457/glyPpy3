@@ -148,12 +148,17 @@ class Conformer():
                             #print("Reading opt")
                     elif "freq" in line: 
                             job_optfreq = True ; freq_flag = True ;  job += 1 
+                            job_freq = True
                             #print("Reading freq")
                     else: job_sp = True ; job += 1 
 
-                if self.NAtoms == None and re.search('^ NAtoms=', line): 
+                if self.NAtoms is None and re.search('^ NAtoms=', line): 
                     self.NAtoms = int(line.split()[1])
                     self.NVibs  = self.NAtoms*3-6
+
+                if self.NAtoms is None and job_freq == True and re.search('Deg. of freedom', line):
+                    self.NVibs  = int(line.split()[3])
+                    self.NAtoms = int((self.NVibs + 6)/3)
 
                 if re.search('^ Frequencies', line):        
                     freq_line = line.strip() 
@@ -538,7 +543,7 @@ class Conformer():
         import matplotlib.pyplot as plt
         from matplotlib.ticker import NullFormatter
 
-        fig, ax = plt.subplots(1, figsize=(8, 2))
+        fig, ax = plt.subplots(1, figsize=(10, 3))
 
         ax.tick_params(axis='both', which='both', bottom=True, top=False, labelbottom=True, right=False, left=False, labelleft=False)
         ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False);  ax.spines['left'].set_visible(False)
@@ -610,6 +615,7 @@ class Conformer():
                 ax.fill_between(exp_data[:,0], exp_data[:,1]*scale_exp+shift, np.linspace(shift,shift, len(exp_data[:,1])), color='r', alpha=0.5)
 
             else:
+                print("split")
                 scale_expL=  1/np.amax(exp_data[:,1])
                 scale_expH= scale_t * np.amax(self.IR[int(1200/incr):int(xmax/incr)+100,1]) /(np.amax(np.where(exp_data[:,0] > 1200, 0, exp_data[:,1])))
                 split_wn = np.where(exp_data[:,0] == 1200) ; split_wn = split_wn[0][0]
