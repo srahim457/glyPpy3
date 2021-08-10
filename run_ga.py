@@ -1,7 +1,6 @@
 import glyP
 import copy, sys
 
-
 GAsettings = {
         "initial_pool"  : 10,
         "alive_pool"    : 6,
@@ -18,7 +17,9 @@ with open(output, 'w') as out:
 
     #sys.stdout = out 
     #sys.stderr = out
-
+    #Initialization:
+    dtime = glyP.utilities.dtime
+    print("Initialize:", dtime())
      #Generation
     GArun = glyP.Space('GA-test')
     GArun.load_models('models_tri')
@@ -35,7 +36,7 @@ with open(output, 'w') as out:
     while n < GAsettings['initial_pool']:
 
   
-        print("generate initial {0:5d}".format(n))
+        print("Generate initial-{0:02d} Date: {1:30s}".format(n, dtime()))
         m = glyP.utilities.draw_random_int(len(GArun.models))
         GArun.append(copy.deepcopy(GArun.models[m]))
         GArun[n]._id = "initial-{0:02d}".format(n)
@@ -65,7 +66,12 @@ with open(output, 'w') as out:
         GArun[n].measure_c6() ; GArun[n].measure_glycosidic() ; GArun[n].measure_ring()
         GArun[n].update_topol(GArun.models)
         GArun[n].update_vector()
+        print("Finished initial-{0:02d} Date: {1:30s}".format(n, dtime()))
         print(GArun[n])
+
+        if GArun[n].Nmols > 1: 
+            print("{0:3d} molecules present, remove".format(GArun[n].Nmols)
+            del GArun[n] ; continue 
 
         if n > 0: 
             duplicate = False
@@ -86,7 +92,7 @@ with open(output, 'w') as out:
     n -= GAsettings['initial_pool']
     while n < GAsettings['generations']:
 
-        print("generate offspring {0:5d}".format(n))
+        print("Generate offspring-{0:02d} Date: {1:30s}".format(n, dtime()))
         N = n + GAsettings['initial_pool']
     
         #draw random structure from the alive pool
@@ -121,7 +127,13 @@ with open(output, 'w') as out:
         offspring.measure_c6() ; offspring.measure_glycosidic() ; offspring.measure_ring()
         offspring.update_topol(GArun.models)
         offspring.update_vector()
+        print("Finished offspring-{0:02d} Date: {1:30s}".format(n, dtime()))
         print(offspring)
+
+        if offspring.Nmols > 1: 
+            print("{0:3d} molecules present, remove".format(offspring.Nmols)
+            del offspring ; continue 
+
 
         duplicate = False
         for i in range(N):

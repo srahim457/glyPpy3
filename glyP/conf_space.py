@@ -79,9 +79,11 @@ class Space(list):
                                     conf = Conformer(topol)
                                     conf.load_log(path+'/'+dirname+'/'+filename)
                                     conf.connectivity_matrix(distXX=1.65, distXH=1.25)
-                                    conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
-                                    self.append(conf)
-                                    
+                                    if conf.Nmols == 1:
+                                        conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
+                                        self.append(conf)
+                                    else: 
+                                        del conf
 
     def load_exp(self, path, ir_resolution=1.0):
 
@@ -103,12 +105,13 @@ class Space(list):
                             self.models.append(conf)
         self.Nmodels = len(self.models)
 
+        print("Analyzing: ", end="")
         for conf in self.models:
-            print("Analyze {0:10s}".format(conf._id))
+            print("{0:>8s}".format(conf._id), end=",")
             conf.ring = [] ; conf.ring_angle = [] ; conf.dih_angle = []
- 
-            conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+            conf.connectivity_matrix(distXX=1.6, distXH=1.20)
             conf.assign_atoms() ; conf.measure_c6() ; conf.measure_ring() ; conf.measure_glycosidic()
+        print('')
 
         if len(self) != 0: 
             for conf in self: 
@@ -193,20 +196,20 @@ class Space(list):
                 return None 
         else:
             return None 
-        if hasattr(self[0], 'Frel'): print ("%20s%10s%20s%8s%8s%8s" %('id', 'topol',  'F-abs', 'E', 'H', 'F'))
-        else:  print ("%20s%10s%20s%8s" %('id', 'topol',  'E-abs', 'E'))
+        if hasattr(self[0], 'Frel'): print ("%23s%10s%20s%8s%8s%8s" %('id', 'topol',  'F-abs', 'E', 'H', 'F'))
+        else:  print ("%23s%10s%20s%8s" %('id', 'topol',  'E-abs', 'E'))
 
         for n, conf in enumerate(self): 
             if n == alive: print("---------------------------------")
             if hasattr(self[0], 'Frel'):
-               print("%20s%10s%20.8f%8.2f%8.2f%8.2f" %(conf._id, conf.topol, conf.F, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
+               print("%3d%20s%10s%20.8f%8.2f%8.2f%8.2f" %(n, conf._id, conf.topol, conf.F, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
             else: 
-               print("%20s%10s%20.8f%8.2f" %(conf._id, conf.topol, conf.E, conf.Erel*self._Ha2kcal), end='')
+               print("%3d%20s%10s%20.8f%8.2f" %(n,conf._id, conf.topol, conf.E, conf.Erel*self._Ha2kcal), end='')
 
             if hasattr(self[0], 'ccs'):
                 print("{0:8.1f}".format(conf.ccs), end='')
             if hasattr(self[0], 'anomer'):
-                print("{0:>10s} ".format(conf.anomer[0]), end='')
+                print("{0:>5s} ".format(conf.anomer[0]), end='')
 
             if hasattr(self[0], 'graph'):
                 for e in conf.graph.edges:
@@ -219,6 +222,20 @@ class Space(list):
                 #for conf in self: print("%20s%20.2f" %(conf._id, conf.Erel*self._Ha2kcal))
 
         #return ''
+
+    def remove_duplicates(self, rmsd = 0.1):
+
+        to_be_removed = []
+        for i, conf1  in enumerate(self):
+            for j, conf2 in enumerate(self):
+                if j <= i : continue
+                if calculate_rmsd(conf1, conf2) < rmsd:
+                    to_be_removed.append(j)
+
+        to_be_removed.reverse() 
+        for rem in to_be_removed:
+            del self[rem]
+
 
     def calculate_ccs(self, method = 'pa', accuracy = 1):
 
@@ -277,7 +294,7 @@ class Space(list):
             labels.remove('unknown') 
             Hs_label.append('unknown')
         for l in labels: 
-            if l[-3:] == '_Hs': 
+            if l[-3:] == '_Hs' or l[-2:] == '_M': 
                 labels.remove(l) 
                 Hs_label.append(l)
         color = dict(zip(labels, color))
@@ -321,12 +338,7 @@ class Space(list):
         ax.plot([xmin-2.5+0.1, xmin-2.5+0.1], [0,ymax], 'k', lw=1.5)
         fig.tight_layout()
         fig.savefig('/'.join([self.path, 'ccs_plot.png']), dpi=200, transparent=True)
-
-
-
-
-
-
+        fig.savefig('/'.join([self.path, 'ccs_plot.pdf']), dpi=200, transparent=True)
 
 
 

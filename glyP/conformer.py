@@ -20,6 +20,7 @@ from .utilities import *
 import networkx as nx
 from operator import itemgetter, attrgetter
 import matplotlib.pyplot as plt
+import py3Dmol as p3D
 
 class Conformer():
 
@@ -39,10 +40,10 @@ class Conformer():
 
             if n == 0 and self.NAtoms == None: self.NAtoms = int(line)
             if n > 1:
-                 if len(line.split()) == 0: break 
-                 geom.append([float(x) for x in line.split()[1:4]])
-                 #atoms.append(element_symbol(line.split()[0]))
-                 atoms.append(line.split()[0])
+                if len(line.split()) == 0: break 
+                geom.append([float(x) for x in line.split()[1:4]])
+                if line.split()[0].isalpha(): atoms.append(line.split()[0])
+                else: atoms.append(element_symbol(line.split()[0]))
 
         self.xyz = np.array(geom)
         self.atoms = atoms
@@ -147,12 +148,17 @@ class Conformer():
                             #print("Reading opt")
                     elif "freq" in line: 
                             job_optfreq = True ; freq_flag = True ;  job += 1 
+                            job_freq = True
                             #print("Reading freq")
                     else: job_sp = True ; job += 1 
 
-                if self.NAtoms == None and re.search('^ NAtoms=', line): 
+                if self.NAtoms is None and re.search('^ NAtoms=', line): 
                     self.NAtoms = int(line.split()[1])
                     self.NVibs  = self.NAtoms*3-6
+
+                if self.NAtoms is None and job_freq == True and re.search('Deg. of freedom', line):
+                    self.NVibs  = int(line.split()[3])
+                    self.NAtoms = int((self.NVibs + 6)/3)
 
                 if re.search('^ Frequencies', line):        
                     freq_line = line.strip() 
@@ -285,8 +291,8 @@ class Conformer():
                 dist = get_distance(self.xyz[at1], self.xyz[at2])
                 if at1 == at2: pass
                 elif (self.atoms[at1] == 'H' or self.atoms[at2] == 'H'):
-                    if dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
-                elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1
+                    if dist < distXH: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1 
+                elif dist < distXX: self.conn_mat[at1,at2] = 1; self.conn_mat[at2,at1] = 1   
 
         for at1 in range(Nat):
             if self.atoms[at1] == 'H' and np.sum(self.conn_mat[at1,:]) > 1:
@@ -296,13 +302,17 @@ class Conformer():
                     at2 = at2list[0][at2dist.index(min(at2dist))]
                     self.conn_mat[at1, at2] = 0 ; self.conn_mat[at2, at1] = 0
 
+        cm = nx.graph.Graph(self.conn_mat)
+        if nx.is_connected(cm): self.Nmols = 1
+        else:
+            self.Nmols = nx.number_connected_components(cm)
+
     def assign_atoms(self):
 
         self.graph = nx.DiGraph()
-
-        #Assign ring atoms: 
         cm = nx.graph.Graph(self.conn_mat)
         cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
+        #print(cycles_in_graph)
         atom_names = self.atoms
         ring_atoms = []
         n = 0
@@ -513,8 +523,6 @@ class Conformer():
 
     def show_xyz(self, width=600, height=600):
 
-        import py3Dmol as p3D
-
         XYZ = "{0:3d}\n{1:s}\n".format(self.NAtoms, self._id)
         for at, xyz in zip(self.atoms, self.xyz):
             XYZ += "{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] )
@@ -535,7 +543,7 @@ class Conformer():
         import matplotlib.pyplot as plt
         from matplotlib.ticker import NullFormatter
 
-        fig, ax = plt.subplots(1, figsize=(8, 2))
+        fig, ax = plt.subplots(1, figsize=(10, 3))
 
         ax.tick_params(axis='both', which='both', bottom=True, top=False, labelbottom=True, right=False, left=False, labelleft=False)
         ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False);  ax.spines['left'].set_visible(False)
@@ -607,6 +615,7 @@ class Conformer():
                 ax.fill_between(exp_data[:,0], exp_data[:,1]*scale_exp+shift, np.linspace(shift,shift, len(exp_data[:,1])), color='r', alpha=0.5)
 
             else:
+                print("split")
                 scale_expL=  1/np.amax(exp_data[:,1])
                 scale_expH= scale_t * np.amax(self.IR[int(1200/incr):int(xmax/incr)+100,1]) /(np.amax(np.where(exp_data[:,0] > 1200, 0, exp_data[:,1])))
                 split_wn = np.where(exp_data[:,0] == 1200) ; split_wn = split_wn[0][0]
