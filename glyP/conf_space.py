@@ -76,7 +76,7 @@ class Space(list):
                         if filename.endswith('.log'):
                             for line in open('/'.join([path, dirname, filename]), 'r').readlines()[-10:]:
                                 if re.search('Normal',  line):
-                                    conf = Conformer(topol)
+                                    conf = Conformer(topol, self.path)
                                     conf.load_log(path+'/'+dirname+'/'+filename)
                                     conf.connectivity_matrix(distXX=1.65, distXH=1.25)
                                     if conf.Nmols == 1:

@@ -6,7 +6,12 @@ import seaborn as sns #this is for heatmaps
 import texttable as tx #this is for commandline table output
 import sys #this is for changing the form of output to write to files
 
-def generate_heatmap( matrix, max_value=0.5): #pass a 2D list, a number for a max cutoff
+def generate_heatmap( matrix, max_value=0.5): 
+	"""	Returns a heatmap of the 2D matrix
+
+	:param matrix: (list) 2D list 
+	:param max_value: a number for a max cutoff value to be represented in the heatmap
+	"""
 	numpy_matrix = np.array(matrix)
 	#print(numpy_matrix.ndim)
 	#print(numpy_matrix.shape)
@@ -15,7 +20,12 @@ def generate_heatmap( matrix, max_value=0.5): #pass a 2D list, a number for a ma
 		ax = sns.heatmap(numpy_matrix,linewidths=.2 , vmax=max_value, square=True)
 
 #? maybe make this built into the conf_space objects, saves making a copy and some functions
-def return_2d_lists(conf_space_object): #pass a conf_space object
+def return_2d_lists(conf_space_object): 
+	""" Returns 3 different 2D lists calculating rmsd, rmsd without considering H atoms and pendry R factor
+
+	:param conf_space_object: an initialized conformer space, this should be a list of conformer objects containing molecule data
+	:return: (list) 3 different 2D lists
+	"""
 	rmsd_all_atoms=[]
 	rmsd_no_hydrogen=[]
 	pendry_all=[]
@@ -29,7 +39,14 @@ def return_2d_lists(conf_space_object): #pass a conf_space object
 			pendry_all[d1].append(rfac(conf_space_object[d1].IR,conf_space_object[d2].IR)) #this one takes forever
 	return rmsd_all_atoms, rmsd_no_hydrogen, pendry_all
 
-def make_plots(conf_space_object, index=0, bar=True, scatter=True): #pass a conf_space object, the index of which conformer to look at default to first index, specifiy if you don't want some graphs
+def make_plots(conf_space_object, index=0, bar=True, scatter=True): 
+	""" Displays plots
+
+	:param conf_space_object: an initialized conformer space, this should be a list of conformer objects containing molecule data
+	:param index: (int) identifies which conformer in the list of conformers, the default is the first conformer at index 0 
+	:param bar: (bool) specifies if bar plots should be generated, this is a triple bar plot (rmsd, rmsd without H, pendry factor); default set to TRUE
+	:param scatter: (bool) specifies if scatterplot should be generated, there will be 3 things plotted (rmsd, rmsd without H, pendry factor); default set to TRUE
+	"""
 	#!!! CHECK IF INDEX IS WITHIN RANGE
 	molecule_ids=[] ; molecule_names=[] ; rmsd_all=[] ; rmsd_no_H=[] ; pendry=[]
 	for i in range(len(conf_space_object)):
@@ -91,6 +108,15 @@ def make_plots(conf_space_object, index=0, bar=True, scatter=True): #pass a conf
 
 
 def display_table(index,molecule_ids,molecule_names,rmsd_all,rmsd_no_H,pendry):
+	""" Prints into terminal and saves as .txt a table displaying each conformer and the associated value rmsd, rmsd without H and pendry R factor
+
+	:param index: (int) all the values are calculated comparing all conformers to one conformer which is sepcified by this index
+	:param molecule_ids: (list) the list of molecule id number
+	:param molecule_names: (list) the lost of molecule names
+	:param rmsd_all: (list) list of rmsd values
+	:param rmsd_no_H: (list) list of rmsd values without H
+	:param pendry: (list) list of all pendry values
+	"""
 	index_vs_all=[] #comparing every conformer to the conformer specified by index
 	index_vs_all.append(["index",("comparing molecules to "+molecule_names[index]),"rmsd","rmsd hydrogens removed","pendry"])
 	#? maybe make this csv writing thing a separate function

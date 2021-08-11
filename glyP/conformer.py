@@ -24,10 +24,11 @@ import py3Dmol as p3D
 
 class Conformer():
 
-    def __init__(self, topol):
+    def __init__(self, topol, output_path):
 
         self._id = topol
         self.topol = topol
+        self.output_path = output_path
 
     def load_model(self, file_path):
 
@@ -635,5 +636,8 @@ class Conformer():
                  ax.plot([scaling_factor*self.Freq[l], scaling_factor*self.Freq[l]], [shift, self.Ints[l]*scale_t+shift], linewidth=2, color='0.25')        
 
         fig.tight_layout()
-        plt.savefig(self._id+'.png', dpi=200)
+        current_path = os.getcwd()
+        output_path = os.path.join(current_path, self.output_path+'/'+self._id+'.png')
+        print(output_path + self._id+'.png')
+        plt.savefig(output_path, dpi=200)
            
