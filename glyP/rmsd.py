@@ -24,22 +24,12 @@ def _center(conformation):
 
 
 def rmsd_qcp(conformation1, conformation2):
-    """Compute the RMSD with Theobald's quaterion-based characteristic
-    polynomial
+    """Compute the RMSD with Theobald's quaterion-based characteristic polynomial
+    Rapid calculation of RMSDs using a quaternion-based characteristic polynomial. Acta Crystallogr A 61(4):478-480.
     
-    Rapid calculation of RMSDs using a quaternion-based characteristic polynomial.
-    Acta Crystallogr A 61(4):478-480.
-    
-    Parameters
-    ----------
-    conformation1 : np.ndarray, shape=(n_atoms, 3)
-        The cartesian coordinates of the first conformation
-    conformation2 : np.ndarray, shape=(n_atoms, 3)
-        The cartesian coordinates of the second conformation
-    Returns
-    -------
-    rmsd : float
-        The root-mean square deviation after alignment between the two pointsets
+    :param conformation1: (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the first conformation
+    :param conformation2: (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the second conformation
+    :return rmsd: (float) the rmsd between two conformers; The root-mean square deviation after alignment between the two pointsets
     """
     # center and typecheck the conformations
     A = _center(conformation1)

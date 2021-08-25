@@ -8,12 +8,13 @@ from operator import itemgetter, attrgetter
 
 class Space(list):
 
-    '''A conformational space consisting of all conformers found in specified directory.
+    """A conformational space consisting of all conformers found in specified directory.
     The directory tree should have a structure:
     'molecule'/*/*log
     if directory 'molecule' holds a directory 'experimental', an attibute self.expIR is 
     created using the data found there. 
-    for different molecules, different lists can (meaning should!) be made.'''
+    for different molecules, different lists can (meaning should!) be made.
+    """
 
     _temp = 298.15 #standard temperature Kelvin
     _kT=0.0019872036*_temp #boltzmann
@@ -30,7 +31,8 @@ class Space(list):
 
     def __str__(self):
          
-        '''Prints a nice table with coded molecular values'''
+        """Prints a nice table with coded molecular values
+        """
 
         if hasattr(self[0], 'H'): 
             print ("%20s%20s%20s%20s" %('id', 'E [Ha]', 'H [Ha]', 'F [Ha]'))
@@ -44,7 +46,8 @@ class Space(list):
         return ''
 
     def __getitem__(self, select):
-
+        """Finds a specific conformer in the space
+        """
         if isinstance(select, int):
             rval = list.__getitem__(self, select)
             return rval
@@ -61,11 +64,14 @@ class Space(list):
         return rret
 
     def __getslice__(self, i, j):
+        """gets a set of conformers in the space
+        """
 
         return self.__getitem(slice(i,j))
 
     def load_dir(self, path, topol=None):
-
+        """Loads a directory with data files to be processed
+        """
         print("Loading {0:30s}".format(path))
         for (root, dirs, files) in os.walk('./'+path):
             #print (root, dirs, files)
@@ -86,14 +92,16 @@ class Space(list):
                                         del conf
 
     def load_exp(self, path, ir_resolution=1.0):
-
+        """Selects the experimental conformer that other conformers will be compared to
+        """
         self.ir_resolution = ir_resolution 
         expIR= np.genfromtxt(path)
         new_grid = np.arange(np.ceil(expIR[0,0]), np.floor(expIR[-1,0]), self.ir_resolution)
         self.expIR = np.vstack((new_grid, interpolate.griddata(expIR[:,0], expIR[:,1], new_grid, method='cubic'))).T #espec - experimental spectrum
 
     def load_models(self, path):
-
+        """Loads a set of specific models used of analysis
+        """
         self.models = []
         for (root, dirs, files) in os.walk('./'+path):
             for dirname in dirs:
@@ -139,7 +147,8 @@ class Space(list):
 
 
     def set_theory(self, **kwargs):
-
+        """Parameters for simulations
+        """
         self.theory = { 'method': 'PBE1PBE', 
                         'basis_set':'6-31+G(d,p)', 
                         'jobtype':'opt freq', 
@@ -155,8 +164,8 @@ class Space(list):
             self.theory[key] = kwargs[key]
 
     def sort_energy(self, energy_function='E'):
-
-        '''Sorted the conformers according to selected energy_function'''
+        """Sorted the conformers according to selected energy_function
+        """
 
         if energy_function == 'E':      self.sort(key = lambda x: x.E)
         elif energy_function == 'H':    self.sort(key = lambda x: x.H)
@@ -164,8 +173,9 @@ class Space(list):
 
     def reference_to_zero(self, energy_function='E'):
 
-        '''Finds a conformer with the lowest specified energy function and 
-        references remainins conformers to this.'''
+        """Finds a conformer with the lowest specified energy function and 
+        references remainins conformers to this.
+        """
 
         Eref = 0.0 ; Fref = 0.0 ; Href = 0.0 
 
@@ -188,6 +198,8 @@ class Space(list):
                 conf.Erel = conf.E -  Eref
 
     def print_relative(self, alive=None):
+        """idk what this does, its something to do with energy and the genetic algorithm i think
+        """
 
         if len(self) != 0:
             try: hasattr(self[0], 'Erel')
@@ -224,7 +236,8 @@ class Space(list):
         #return ''
 
     def remove_duplicates(self, rmsd = 0.1):
-
+        """Removes duplicate conformers from the space
+        """
         to_be_removed = []
         for i, conf1  in enumerate(self):
             for j, conf2 in enumerate(self):
@@ -238,12 +251,13 @@ class Space(list):
 
 
     def calculate_ccs(self, method = 'pa', accuracy = 1):
-
+        """idk 
+        """
         for conf in self:  conf.calculate_ccs(self.path, method=method, accuracy=accuracy)
 
     def gaussian_broadening(self, broaden=3):
-
-        ''' Performs gaussian broadening for the set'''
+        """Performs gaussian broadening for the set
+        """
 
         #checks if self.ir_resolution exists in the object, it would only exist if load_exp is called
         #works when no load_exp is called, need to test with load_exp
@@ -254,31 +268,37 @@ class Space(list):
 
     def create_connectivity_matrix(self, distXX=1.6, distXH=1.2): #1
 
-        '''Create a connectivity matrix as an attribute to the conf_space:
+        """Create a connectivity matrix as an attribute to the conf_space:
         distXX - cutoff distance between heavy atoms
-        distXH - cutoff distance between heavy at - hydrogen '''
+        distXH - cutoff distance between heavy at - hydrogen
+        """
 
         print('creating connectivity matrix')
         for conf in self: conf.connectivity_matrix(distXX, distXH)
 
     def assign_atoms(self): #2
-
+        """Labels each atom for each conformer in the space
+        """
         print('assigning atoms')
         for conf in self: conf.assign_atoms()
 
 
     def assign_ring_puckers(self): #3
-
+        """Identifies each ring of each conformer in the space
+        """
         print('assigning rings')
         for conf in self: conf.measure_ring() 
 
     def assign_glycosidic_angles(self):
-
+        """Calculates the dihedral angles for each conformer in the space
+        """
         print('assigning dihs')
         for conf in self: conf.measure_glycosidic()
 
 
     def plot_ccs(self, energy_function='E', ccs_exp=141, xmin=130., xmax=150., ymin = -1., ymax=30., xlabel = 'CCS$^{PA}$ [$\AA{}^2$]'):
+        """idk 
+        """
 
         from matplotlib.ticker import NullFormatter, FormatStrFormatter
         #color = { 'LeA': '#a6cee3', 'LeX': '#1f78b4', 'BGH-1': '#b2df8a', 'BGH-2': '#33a02c', 'a16':'#fb9a99', 'b16':'#e31a1c', 'a14':'#fdbf6f' , 'b14': '#ff7f00', 'a13': '#cab2d6', 'b13': '#6a3d9a','a16n':'#ffff99','b16n':'#b15928', 'a12n': '#000000'}

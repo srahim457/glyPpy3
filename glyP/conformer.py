@@ -24,14 +24,20 @@ import py3Dmol as p3D
 
 class Conformer():
 
-    def __init__(self, topol, output_path):
+    """
+    A class that creates an instance of a molecule defined as conformer.
+    It parses gaussian output file (optimization + freq at this moment to
+    set proper flags, to be fixed for only freq calcs) and creates an object
+    """
 
+    def __init__(self, topol, output_path):
+        """ placeholder here """
         self._id = topol
         self.topol = topol
         self.output_path = output_path
 
     def load_model(self, file_path):
-
+        """ placeholder here """
         self.NAtoms = None
         self._id    = str(file_path).split('/')[-2]
         self.topol = self._id
@@ -50,7 +56,7 @@ class Conformer():
         self.atoms = atoms
 
     def create_input(self, theory, output):
-
+        """ placeholder here """
         if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3':
             theory['disp'] = 'EmpiricalDispersion=GD3'
         else: 
@@ -81,7 +87,7 @@ class Conformer():
         f.close()
 
     def run_gaussian(self, mpi=False):
-
+        """ placeholder here """
         try: hasattr(self, 'outdir')
         except:
             print("Create input first")
@@ -102,7 +108,7 @@ class Conformer():
         return gauss_job.returncode
 
     def calculate_ccs(self, temp_dir, method = 'pa', accuracy = 1):
-        
+        """ placeholder here """   
         with open( temp_dir + '/sig.xyz','w') as ccs:
             ccs.write("{0:3d}\n".format(self.NAtoms))
             for at, xyz in zip(self.atoms, self.xyz):
@@ -116,7 +122,7 @@ class Conformer():
                 if re.search('Average PA', line.decode('utf-8')): self.ccs  = float(line.decode('utf-8').split()[4])
 
     def load_log(self, file_path):
-
+        """ placeholder here """
         #try:
         #    logfile = open(file_path, 'r')
         #except IOError: 
@@ -235,7 +241,7 @@ class Conformer():
 
     def __str__(self): 
 
-        '''Prints a some molecular properties'''
+        """Prints a some molecular properties"""
 
         print ("%20s%20s   NAtoms=%5d" %(self._id, self.topol, self.NAtoms))
         if hasattr(self, 'F'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
@@ -268,15 +274,12 @@ class Conformer():
 
     def gaussian_broadening(self, broaden, resolution=1):
  
-        ''' Performs gaussian broadening on IR spectrum:
-        Args:
-            broaden - gaussian broadening in wn-1
-            resolution - resolution of the spectrum (number of points for 1 wn)
-                         defaults is 1, needs to be fixed in plotting
-        Returns:
-            self.IR - np.array with dimmension 4000/resolution consisting
-                     gaussian-boraden spectrum
-        '''
+        """ Performs gaussian broadening on IR spectrum
+        generates attribute self.IR - np.array with dimmension 4000/resolution consisting gaussian-boraden spectrum
+        
+        :param broaden: (float) gaussian broadening in wn-1
+        :param resolution: (float) resolution of the spectrum (number of points for 1 wn) defaults is 1, needs to be fixed in plotting
+        """
 
         IR = np.zeros((int(4000/resolution) + 1,))
         X = np.linspace(0,4000, int(4000/resolution)+1)
@@ -284,7 +287,7 @@ class Conformer():
         self.IR=np.vstack((X, IR)).T #tspec
 
     def connectivity_matrix(self, distXX, distXH):
-
+        """ placeholder here """
         Nat = self.NAtoms
         self.conn_mat = np.zeros((Nat, Nat))
         for at1 in range(Nat):
@@ -309,7 +312,7 @@ class Conformer():
             self.Nmols = nx.number_connected_components(cm)
 
     def assign_atoms(self):
-
+        """ placeholder here """
         self.graph = nx.DiGraph()
         cm = nx.graph.Graph(self.conn_mat)
         cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
@@ -444,20 +447,20 @@ class Conformer():
         #print (self.dih_atoms, self.dih, self.anomer)
 
     def measure_c6(self): 
-
+        """ placeholder here """
         for n in self.graph.nodes:
             if 'c6_atoms' in self.graph.nodes[n]:
                 self.graph.nodes[n]['c6_dih'] = measure_dihedral(self, self.graph.nodes[n]['c6_atoms'])[0]
 
     def set_c6(self, ring, dih):
-
+        """ placeholder here """
         if hasattr(self.graph.nodes[ring], 'c6_atoms'):
             atoms = self.graph.nodes[ring]['c6_dih']
             set_dihedral(self, atoms, dih)
         self.measure_c6()
 
     def measure_glycosidic(self):
-
+        """ placeholder here """
         for e in self.graph.edges:
             atoms = self.graph.edges[e]['linker_atoms']
             phi, ax = measure_dihedral(self, atoms[:4])
@@ -475,7 +478,7 @@ class Conformer():
             else: self.graph.edges[e]['dihedral'] = [phi, psi]
 
     def set_glycosidic(self, bond, phi, psi, omega=None, gamma=None):
-
+        """ placeholder here """
         #atoms = sort_linkage_atoms(self.dih_atoms[bond])
         atoms = self.graph.edges[bond]['linker_atoms']
         set_dihedral(self, atoms[:4], phi)
@@ -489,20 +492,20 @@ class Conformer():
         self.measure_glycosidic()
 
     def measure_ring(self):
-
+        """ placeholder here """
         for n in self.graph.nodes:
             atoms = self.graph.nodes[n]['ring_atoms']
             phi, psi, R = calculate_ring(self.xyz, atoms)
             self.graph.nodes[n]['ring'] = R; self.graph.nodes[n]['CP'] = [phi, psi]
 
     def update_vector(self):
-
+        """ placeholder here """
         self.ga_vector = []
         for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
         for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
 
     def update_topol(self, models):
-
+        """ placeholder here """
         conf_links = [ self.graph.edges[e]['linker_type'] for e in self.graph.edges]
         self.topol = 'unknown'
         for m in models:
@@ -523,7 +526,7 @@ class Conformer():
         return 0 
 
     def show_xyz(self, width=600, height=600):
-
+        """ placeholder here """
         XYZ = "{0:3d}\n{1:s}\n".format(self.NAtoms, self._id)
         for at, xyz in zip(self.atoms, self.xyz):
             XYZ += "{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] )
@@ -535,11 +538,12 @@ class Conformer():
 
     def plot_ir(self, xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None):
 
-        ''' Plots the IR spectrum in xmin -- xmax range,
+        """ Plots the IR spectrum in xmin -- xmax range,
         x-axis is multiplied by scaling factor, everything
         is normalized to 1. If exp_data is specified, 
         then the top panel is getting plotted too. 
-        Need to add output directory. Default name is self._id'''
+        Need to add output directory. Default name is self._id
+        """
 
         import matplotlib.pyplot as plt
         from matplotlib.ticker import NullFormatter
@@ -580,6 +584,12 @@ class Conformer():
 
 
     def plot_ir2(self,  xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None, exp_int_split=False, normal_modes=False):
+        """ Plots the IR spectrum in xmin -- xmax range,
+        x-axis is multiplied by scaling factor, everything
+        is normalized to 1. If exp_data is specified, 
+        then the top panel is getting plotted too. 
+        Need to add output directory. Default name is self._id
+        """
 
         import matplotlib.pyplot as plt
         from matplotlib.ticker import NullFormatter

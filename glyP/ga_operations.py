@@ -8,7 +8,8 @@ from scipy.linalg import expm
 from optparse import OptionParser
 
 def modify_glyc(conf, bond):
-
+    """placeholder
+    """
     edge = conf.graph.edges[bond]
     atoms = len(edge['linker_atoms']) ; angles = [] ; n=0
 
@@ -26,7 +27,8 @@ def modify_glyc(conf, bond):
         conf.set_glycosidic(bond, angles[0], angles[1], angles[2], angles[3])
 
 def modify_c6(conf, ring):
-
+    """ placeholder
+    """
     node = conf.graph.nodes[ring]
     if 'c6_atoms' in node:
         atoms = node['c6_atoms']
@@ -38,7 +40,8 @@ def modify_ring(conf, ring, phi, psi):
     pass
 
 def cross_over(conf1, conf2):
-
+    """ placeholder
+    """
 
     #Compare the edges.
     #if connectivity is identical, compare dihs angles, then exchange the information if different. 
