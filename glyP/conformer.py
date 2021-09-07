@@ -31,13 +31,20 @@ class Conformer():
     """
 
     def __init__(self, topol, output_path):
-        """ placeholder here """
+        """Construct a conformer object
+
+        :param topol:
+        :param output_path: (string) this specifies the directory any generated IR plots will be placed
+        """
         self._id = topol
         self.topol = topol
         self.output_path = output_path
 
     def load_model(self, file_path):
-        """ placeholder here """
+        """Loads a file and constructs a conformer
+
+        :param file_path: (string) this is the directory of the data file being used to condtruct a conformer object
+        """
         self.NAtoms = None
         self._id    = str(file_path).split('/')[-2]
         self.topol = self._id
@@ -56,7 +63,8 @@ class Conformer():
         self.atoms = atoms
 
     def create_input(self, theory, output):
-        """ placeholder here """
+        """
+        """
         if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3':
             theory['disp'] = 'EmpiricalDispersion=GD3'
         else: 
@@ -87,7 +95,8 @@ class Conformer():
         f.close()
 
     def run_gaussian(self, mpi=False):
-        """ placeholder here """
+        """
+        """
         try: hasattr(self, 'outdir')
         except:
             print("Create input first")
@@ -108,7 +117,8 @@ class Conformer():
         return gauss_job.returncode
 
     def calculate_ccs(self, temp_dir, method = 'pa', accuracy = 1):
-        """ placeholder here """   
+        """
+        """   
         with open( temp_dir + '/sig.xyz','w') as ccs:
             ccs.write("{0:3d}\n".format(self.NAtoms))
             for at, xyz in zip(self.atoms, self.xyz):
@@ -122,7 +132,8 @@ class Conformer():
                 if re.search('Average PA', line.decode('utf-8')): self.ccs  = float(line.decode('utf-8').split()[4])
 
     def load_log(self, file_path):
-        """ placeholder here """
+        """
+        """
         #try:
         #    logfile = open(file_path, 'r')
         #except IOError: 
@@ -287,7 +298,8 @@ class Conformer():
         self.IR=np.vstack((X, IR)).T #tspec
 
     def connectivity_matrix(self, distXX, distXH):
-        """ placeholder here """
+        """
+        """
         Nat = self.NAtoms
         self.conn_mat = np.zeros((Nat, Nat))
         for at1 in range(Nat):
@@ -312,7 +324,8 @@ class Conformer():
             self.Nmols = nx.number_connected_components(cm)
 
     def assign_atoms(self):
-        """ placeholder here """
+        """
+        """
         self.graph = nx.DiGraph()
         cm = nx.graph.Graph(self.conn_mat)
         cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
@@ -447,20 +460,23 @@ class Conformer():
         #print (self.dih_atoms, self.dih, self.anomer)
 
     def measure_c6(self): 
-        """ placeholder here """
+        """
+        """
         for n in self.graph.nodes:
             if 'c6_atoms' in self.graph.nodes[n]:
                 self.graph.nodes[n]['c6_dih'] = measure_dihedral(self, self.graph.nodes[n]['c6_atoms'])[0]
 
     def set_c6(self, ring, dih):
-        """ placeholder here """
+        """
+        """
         if hasattr(self.graph.nodes[ring], 'c6_atoms'):
             atoms = self.graph.nodes[ring]['c6_dih']
             set_dihedral(self, atoms, dih)
         self.measure_c6()
 
     def measure_glycosidic(self):
-        """ placeholder here """
+        """
+        """
         for e in self.graph.edges:
             atoms = self.graph.edges[e]['linker_atoms']
             phi, ax = measure_dihedral(self, atoms[:4])
@@ -478,7 +494,8 @@ class Conformer():
             else: self.graph.edges[e]['dihedral'] = [phi, psi]
 
     def set_glycosidic(self, bond, phi, psi, omega=None, gamma=None):
-        """ placeholder here """
+        """
+        """
         #atoms = sort_linkage_atoms(self.dih_atoms[bond])
         atoms = self.graph.edges[bond]['linker_atoms']
         set_dihedral(self, atoms[:4], phi)
@@ -492,20 +509,23 @@ class Conformer():
         self.measure_glycosidic()
 
     def measure_ring(self):
-        """ placeholder here """
+        """
+        """
         for n in self.graph.nodes:
             atoms = self.graph.nodes[n]['ring_atoms']
             phi, psi, R = calculate_ring(self.xyz, atoms)
             self.graph.nodes[n]['ring'] = R; self.graph.nodes[n]['CP'] = [phi, psi]
 
     def update_vector(self):
-        """ placeholder here """
+        """
+        """
         self.ga_vector = []
         for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
         for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
 
     def update_topol(self, models):
-        """ placeholder here """
+        """
+        """
         conf_links = [ self.graph.edges[e]['linker_type'] for e in self.graph.edges]
         self.topol = 'unknown'
         for m in models:
@@ -526,7 +546,8 @@ class Conformer():
         return 0 
 
     def show_xyz(self, width=600, height=600):
-        """ placeholder here """
+        """
+        """
         XYZ = "{0:3d}\n{1:s}\n".format(self.NAtoms, self._id)
         for at, xyz in zip(self.atoms, self.xyz):
             XYZ += "{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] )

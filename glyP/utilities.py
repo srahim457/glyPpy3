@@ -56,7 +56,7 @@ def adjacent_atoms(conn_mat, at):
   
   :param conn_mat: the connectivity matrix
   :param at: a selected atom
-  :return: all adjacent atoms
+  :return: all adjacent atoms to the selected atom 
   """
   return np.nonzero(conn_mat[at,:])[0]
 
@@ -132,6 +132,7 @@ def calculate_normal_vector(conf, list_of_atoms):
   cross product of two vectors belonging to it.
 
   :param list_of_atoms: (list) of 3 atoms
+  :param conf: a conformer object 
   :return cross_product: cross product of two matricies
   """
 
@@ -309,6 +310,10 @@ def deriv(spec,h):
        and for the first 3 and last 3 grid points the
        forward/backward finite difference method up to 2nd order.
        ...as used in f77-program and suggested by Zanazzi-Jona...
+
+       :param spec: (list)
+       :param h: 
+       :return: the first derivative of the parameter spec
   """ 
   der_spec =[[i[0],0] for i in spec]
 
@@ -326,6 +331,14 @@ def deriv(spec,h):
 def get_range(tspec,espec,w_incr,shift,start,stop):
   """determine wavenumber range within the comparison between theoretical
   and experimental spectrum is performed (depends on the shift)
+
+  :param tspec: theoretical spectrum
+  :param espec: experimental spectrum 
+  :param w_incr:
+  :param shift:
+  :param start:
+  :param stop: 
+  :return: 
   """
   de1=start+shift-espec[0][0]
   if (de1 >= 0 ):
@@ -350,6 +363,10 @@ def get_range(tspec,espec,w_incr,shift,start,stop):
 
 def integrate(integrand,delta):
   """ integrate using the trapezoid method as Zanazzi-Jona suggested and was used in the f77-program...
+
+  :param integrand: (2D list) 
+  :param delta:
+  :return: (float) returns a product of the calculated integral and the delta
   """
   integral = 0.5*(integrand[0][1]+integrand[-1][1])   
   for i in range(1,len(integrand)-1):
@@ -357,8 +374,13 @@ def integrate(integrand,delta):
   return integral*delta
 
 def ypendry(spec,d1_spec,VI):
-  """ calculate the Pendry Y-function: y=l^-1/(l^-2+VI^2) with l=I'/I (logarithmic derivative),
+  """ calculate the Pendry Y-function: y= l^-1/(l^-2+VI^2) with l=I'/I (logarithmic derivative),
       J.B. Pendry, J. Phys. C: Solid St. Phys. 13 (1980) 937-44
+
+  :param spec:
+  :param d1_spec:
+  :param VI:
+  :return: (2D list) returns the calculated pendry y-function
   """
   y=[[i[0],0] for i in spec]
 
@@ -381,14 +403,15 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
         NOTE: in the f77-program R1 is scaled by 0.75 and R2 is scaled by 0.5; this is not done here
         Please provide a file r-fac.in with the following specifications (without the comment lines!!!) 
         (the numbers are just examples, choose them according to your particular case)
-        start=1000       # where to start the comparison
-        stop=1800        # where to stop the comparison
-        w_incr=0.5       # grid interval of the spectra -- should be 1 or smaller! (otherwise integrations/derivatives are not accurate)
-        shift_min=-10    # minimal shift of the theoretical spectrum 
-        shift_max=+10    # maximal shift of the experimental spectrum
-        shift_incr=1     # shift interval
-        r=pendry         # which r-factor should be calculated? options: pendry, ZJ, R1, R2 (give a list of the requested r-factors separated by comma)
-        VI=10            # approximate half-width of the peaks (needed for pendry r-factor)
+        
+  :param start: (int) where to start the comparison, default to 1000
+  :param stop: (int) where to stop the comparison, default to 1800
+  :param w_incr: (float) grid interval of the spectra -- should be 1 or smaller! (otherwise integrations/derivatives are not accurate) Default to 0.5
+  :param shift_min: (int) minimal shift of the theoretical spectrum, default to -10
+  :param shift_max: (int) maximal shift of the experimental spectrum, default to +10
+  :param shift_incr: (int) shift interval, default to 1
+  :param r: (string) specify which r-factor should be calculated options: pendry, ZJ, R1, R2 (give a list of the requested r-factors separated by comma). The default is "pendry"
+  :param VI: (int) approximate half-width of the peaks (needed for pendry r-factor). Default to 10
   """
    #for shift in numpy.arange(shift_min,shift_max+shift_incr,shift_incr):# get the interval within the two spectra are compared
                 #tnstart,tnstop,enstart,enstop = get_range(tspec,espec,w_incr,shift,start,stop) 

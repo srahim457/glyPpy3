@@ -7,8 +7,15 @@ from scipy import interpolate
 from scipy.linalg import expm
 from optparse import OptionParser
 
+"""
+These functions are all genetic algorithm operations. Each operation modifies existing conformer objects.
+"""
+
 def modify_glyc(conf, bond):
-    """placeholder
+    """Modifies the angle between the two rings attached by a specified glycosidic bond
+
+    :param conf: a conformer object
+    :param bond: (int) index of which edge in the list of edges of the conformer
     """
     edge = conf.graph.edges[bond]
     atoms = len(edge['linker_atoms']) ; angles = [] ; n=0
@@ -27,7 +34,10 @@ def modify_glyc(conf, bond):
         conf.set_glycosidic(bond, angles[0], angles[1], angles[2], angles[3])
 
 def modify_c6(conf, ring):
-    """ placeholder
+    """Modifies the 6th carbon of a ring, randomly draws an integer and edits the dihedral angle
+
+    :param conf: a conformer object
+    :param ring: (int) index that specifies which ring of the conformer is being edited 
     """
     node = conf.graph.nodes[ring]
     if 'c6_atoms' in node:
@@ -36,11 +46,15 @@ def modify_c6(conf, ring):
         conf.set_c6(ring, dih)
 
 def modify_ring(conf, ring, phi, psi):
-
+    """ This does nothing at the moment
+    """
     pass
 
 def cross_over(conf1, conf2):
-    """ placeholder
+    """Swaps angle measures of two conformers
+
+    :param conf1: the first conformer object
+    :param conf2: the second conformer object
     """
 
     #Compare the edges.

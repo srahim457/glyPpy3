@@ -1,4 +1,4 @@
-""" The script is based anextension of the cp.py script published in SI of:
+""" The script is based an extension of the cp.py script published in SI of:
 Puckering Coordinates of Monocyclic Rings by Triangular Decomposition
 Anthony D. Hill and Peter J. Reilly
 
@@ -37,6 +37,14 @@ for i in range(len(z)):
 
 
 def haversine(lon1, lat1, lon2, lat2):
+    """Calculates and returns a distance using the haversine formula
+
+    :param lon1: (float) the longitude of position 1
+    :param lat1: (float) the latitude of position 1
+    :param lon2: (float) the longitude of position 2
+    :param lat2: (float) the latitude of poition 2
+    :return distance: (float) distance between two positions
+    """
     lat1 = -lat1 + 90.0
     lat2 = -lat2 + 90.0
     lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
@@ -56,6 +64,11 @@ def find_canon(n1, n2):
 
 
 def norm(a):
+    """Norm of a vector, basically returns the non-negative value of a number
+
+    :param a: (float) some value
+    :return: (float) the normalized value
+    """
     return math.sqrt(numpy.sum(a*a))
 
 

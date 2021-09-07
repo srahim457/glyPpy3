@@ -14,6 +14,9 @@ class Space(list):
     if directory 'molecule' holds a directory 'experimental', an attibute self.expIR is 
     created using the data found there. 
     for different molecules, different lists can (meaning should!) be made.
+
+    Generally constructing a conformer space is the first thing to do when using this package.
+    A conformer space will generate a list of conformers. 
     """
 
     _temp = 298.15 #standard temperature Kelvin
@@ -198,7 +201,7 @@ class Space(list):
                 conf.Erel = conf.E -  Eref
 
     def print_relative(self, alive=None):
-        """idk what this does, its something to do with energy and the genetic algorithm i think
+        """
         """
 
         if len(self) != 0:
@@ -251,7 +254,7 @@ class Space(list):
 
 
     def calculate_ccs(self, method = 'pa', accuracy = 1):
-        """idk 
+        """ 
         """
         for conf in self:  conf.calculate_ccs(self.path, method=method, accuracy=accuracy)
 
@@ -297,7 +300,7 @@ class Space(list):
 
 
     def plot_ccs(self, energy_function='E', ccs_exp=141, xmin=130., xmax=150., ymin = -1., ymax=30., xlabel = 'CCS$^{PA}$ [$\AA{}^2$]'):
-        """idk 
+        """
         """
 
         from matplotlib.ticker import NullFormatter, FormatStrFormatter

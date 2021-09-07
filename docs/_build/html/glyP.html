@@ -187,7 +187,7 @@
 </div>
 <div class="section" id="module-glyP.calc_cp">
 <span id="glyp-calc-cp-module"></span><h2>glyP.calc_cp module<a class="headerlink" href="#module-glyP.calc_cp" title="Permalink to this headline">¶</a></h2>
-<p>The script is based anextension of the cp.py script published in SI of:
+<p>The script is based an extension of the cp.py script published in SI of:
 Puckering Coordinates of Monocyclic Rings by Triangular Decomposition
 Anthony D. Hill and Peter J. Reilly</p>
 <p>Usage:
@@ -207,12 +207,35 @@ from cp import cp_values</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.calc_cp.haversine">
 <span class="sig-prename descclassname"><span class="pre">glyP.calc_cp.</span></span><span class="sig-name descname"><span class="pre">haversine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lon1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.calc_cp.haversine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calculates and returns a distance using the haversine formula</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lon1</strong> – (float) the longitude of position 1</p></li>
+<li><p><strong>lat1</strong> – (float) the latitude of position 1</p></li>
+<li><p><strong>lon2</strong> – (float) the longitude of position 2</p></li>
+<li><p><strong>lat2</strong> – (float) the latitude of poition 2</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return distance</dt>
+<dd class="field-even"><p>(float) distance between two positions</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.calc_cp.norm">
 <span class="sig-prename descclassname"><span class="pre">glyP.calc_cp.</span></span><span class="sig-name descname"><span class="pre">norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.calc_cp.norm" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Norm of a vector, basically returns the non-negative value of a number</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>a</strong> – (float) some value</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(float) the normalized value</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 <div class="section" id="module-glyP.conf_space">
@@ -248,8 +271,7 @@ for different molecules, different lists can (meaning should!) be made.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.calculate_ccs">
 <span class="sig-name descname"><span class="pre">calculate_ccs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pa'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accuracy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.calculate_ccs" title="Permalink to this definition">¶</a></dt>
-<dd><p>idk</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.create_connectivity_matrix">
@@ -286,14 +308,12 @@ distXH - cutoff distance between heavy at - hydrogen</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.plot_ccs">
 <span class="sig-name descname"><span class="pre">plot_ccs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">energy_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'E'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccs_exp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">141</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">130.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlabel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'CCS$^{PA}$</span> <span class="pre">[$\\AA{}^2$]'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.plot_ccs" title="Permalink to this definition">¶</a></dt>
-<dd><p>idk</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.print_relative">
 <span class="sig-name descname"><span class="pre">print_relative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.print_relative" title="Permalink to this definition">¶</a></dt>
-<dd><p>idk what this does, its something to do with energy and the genetic algorithm i think</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.reference_to_zero">
@@ -335,26 +355,22 @@ set proper flags, to be fixed for only freq calcs) and creates an object</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.assign_atoms">
 <span class="sig-name descname"><span class="pre">assign_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.assign_atoms" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.calculate_ccs">
 <span class="sig-name descname"><span class="pre">calculate_ccs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temp_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pa'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accuracy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.calculate_ccs" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.connectivity_matrix">
 <span class="sig-name descname"><span class="pre">connectivity_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">distXX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distXH</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.connectivity_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.create_input">
 <span class="sig-name descname"><span class="pre">create_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.create_input" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.gaussian_broadening">
@@ -374,32 +390,33 @@ generates attribute self.IR - np.array with dimmension 4000/resolution consistin
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.load_log">
 <span class="sig-name descname"><span class="pre">load_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.load_log" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.load_model">
 <span class="sig-name descname"><span class="pre">load_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.load_model" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
+<dd><p>Loads a file and constructs a conformer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file_path</strong> – (string) this is the directory of the data file being used to condtruct a conformer object</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.measure_c6">
 <span class="sig-name descname"><span class="pre">measure_c6</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.measure_c6" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.measure_glycosidic">
 <span class="sig-name descname"><span class="pre">measure_glycosidic</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.measure_glycosidic" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.measure_ring">
 <span class="sig-name descname"><span class="pre">measure_ring</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.measure_ring" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.plot_ir">
@@ -424,38 +441,32 @@ Need to add output directory. Default name is self._id</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.run_gaussian">
 <span class="sig-name descname"><span class="pre">run_gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mpi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.run_gaussian" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.set_c6">
 <span class="sig-name descname"><span class="pre">set_c6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ring</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dih</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.set_c6" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.set_glycosidic">
 <span class="sig-name descname"><span class="pre">set_glycosidic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bond</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.set_glycosidic" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.show_xyz">
 <span class="sig-name descname"><span class="pre">show_xyz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">600</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.show_xyz" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.update_topol">
 <span class="sig-name descname"><span class="pre">update_topol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.update_topol" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.update_vector">
 <span class="sig-name descname"><span class="pre">update_vector</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.update_vector" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder here</p>
-</dd></dl>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -530,25 +541,50 @@ Need to add output directory. Default name is self._id</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.ga_operations.cross_over">
 <span class="sig-prename descclassname"><span class="pre">glyP.ga_operations.</span></span><span class="sig-name descname"><span class="pre">cross_over</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.ga_operations.cross_over" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder</p>
+<dd><p>Swaps angle measures of two conformers</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conf1</strong> – the first conformer object</p></li>
+<li><p><strong>conf2</strong> – the second conformer object</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.ga_operations.modify_c6">
 <span class="sig-prename descclassname"><span class="pre">glyP.ga_operations.</span></span><span class="sig-name descname"><span class="pre">modify_c6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ring</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.ga_operations.modify_c6" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder</p>
+<dd><p>Modifies the 6th carbon of a ring, randomly draws an integer and edits the dihedral angle</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conf</strong> – a conformer object</p></li>
+<li><p><strong>ring</strong> – (int) index that specifies which ring of the conformer is being edited</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.ga_operations.modify_glyc">
 <span class="sig-prename descclassname"><span class="pre">glyP.ga_operations.</span></span><span class="sig-name descname"><span class="pre">modify_glyc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.ga_operations.modify_glyc" title="Permalink to this definition">¶</a></dt>
-<dd><p>placeholder</p>
+<dd><p>Modifies the angle between the two rings attached by a specified glycosidic bond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conf</strong> – a conformer object</p></li>
+<li><p><strong>bond</strong> – (int) index of which edge in the list of edges of the conformer</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.ga_operations.modify_ring">
 <span class="sig-prename descclassname"><span class="pre">glyP.ga_operations.</span></span><span class="sig-name descname"><span class="pre">modify_ring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ring</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psi</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.ga_operations.modify_ring" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>This does nothing at the moment</p>
+</dd></dl>
 
 </div>
 <div class="section" id="module-glyP.rmsd">
@@ -597,7 +633,7 @@ Rapid calculation of RMSDs using a quaternion-based characteristic polynomial. A
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>all adjacent atoms</p>
+<dd class="field-even"><p>all adjacent atoms to the selected atom</p>
 </dd>
 </dl>
 </dd></dl>
@@ -609,7 +645,10 @@ Rapid calculation of RMSDs using a quaternion-based characteristic polynomial. A
 cross product of two vectors belonging to it.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>list_of_atoms</strong> – (list) of 3 atoms</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>list_of_atoms</strong> – (list) of 3 atoms</p></li>
+<li><p><strong>conf</strong> – a conformer object</p></li>
+</ul>
 </dd>
 <dt class="field-even">Return cross_product</dt>
 <dd class="field-even"><p>cross product of two matricies</p>
@@ -662,6 +701,17 @@ using the central finite difference method up to 6th order,
 and for the first 3 and last 3 grid points the
 forward/backward finite difference method up to 2nd order.
 …as used in f77-program and suggested by Zanazzi-Jona…</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spec</strong> – (list)</p></li>
+<li><p><strong>h</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the first derivative of the parameter spec</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -743,12 +793,38 @@ of an atom 2</p>
 <span class="sig-prename descclassname"><span class="pre">glyP.utilities.</span></span><span class="sig-name descname"><span class="pre">get_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">espec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_incr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.utilities.get_range" title="Permalink to this definition">¶</a></dt>
 <dd><p>determine wavenumber range within the comparison between theoretical
 and experimental spectrum is performed (depends on the shift)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tspec</strong> – theoretical spectrum</p></li>
+<li><p><strong>espec</strong> – experimental spectrum</p></li>
+<li><p><strong>w_incr</strong> – </p></li>
+<li><p><strong>shift</strong> – </p></li>
+<li><p><strong>start</strong> – </p></li>
+<li><p><strong>stop</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.utilities.integrate">
 <span class="sig-prename descclassname"><span class="pre">glyP.utilities.</span></span><span class="sig-name descname"><span class="pre">integrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integrand</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.utilities.integrate" title="Permalink to this definition">¶</a></dt>
 <dd><p>integrate using the trapezoid method as Zanazzi-Jona suggested and was used in the f77-program…</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>integrand</strong> – (2D list)</p></li>
+<li><p><strong>delta</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(float) returns a product of the calculated integral and the delta</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -782,20 +858,28 @@ required to set a new dihedral.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.utilities.rfac">
 <span class="sig-prename descclassname"><span class="pre">glyP.utilities.</span></span><span class="sig-name descname"><span class="pre">rfac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">espec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_incr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_incr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pendry'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">VI</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.utilities.rfac" title="Permalink to this definition">¶</a></dt>
-<dd><p>%prog [options] r-fac.in
-Reads two spectra and calculates various R-factors – FS 2011
+<dd><dl class="simple">
+<dt>%prog [options] r-fac.in</dt><dd><p>Reads two spectra and calculates various R-factors – FS 2011
 Attention: both spectra have to be given on the same, equidistant grid!
 NOTE: in the f77-program R1 is scaled by 0.75 and R2 is scaled by 0.5; this is not done here
 Please provide a file r-fac.in with the following specifications (without the comment lines!!!) 
-(the numbers are just examples, choose them according to your particular case)
-start=1000       # where to start the comparison
-stop=1800        # where to stop the comparison
-w_incr=0.5       # grid interval of the spectra – should be 1 or smaller! (otherwise integrations/derivatives are not accurate)
-shift_min=-10    # minimal shift of the theoretical spectrum 
-shift_max=+10    # maximal shift of the experimental spectrum
-shift_incr=1     # shift interval
-r=pendry         # which r-factor should be calculated? options: pendry, ZJ, R1, R2 (give a list of the requested r-factors separated by comma)
-VI=10            # approximate half-width of the peaks (needed for pendry r-factor)</p>
+(the numbers are just examples, choose them according to your particular case)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> – (int) where to start the comparison, default to 1000</p></li>
+<li><p><strong>stop</strong> – (int) where to stop the comparison, default to 1800</p></li>
+<li><p><strong>w_incr</strong> – (float) grid interval of the spectra – should be 1 or smaller! (otherwise integrations/derivatives are not accurate) Default to 0.5</p></li>
+<li><p><strong>shift_min</strong> – (int) minimal shift of the theoretical spectrum, default to -10</p></li>
+<li><p><strong>shift_max</strong> – (int) maximal shift of the experimental spectrum, default to +10</p></li>
+<li><p><strong>shift_incr</strong> – (int) shift interval, default to 1</p></li>
+<li><p><strong>r</strong> – (string) specify which r-factor should be calculated options: pendry, ZJ, R1, R2 (give a list of the requested r-factors separated by comma). The default is “pendry”</p></li>
+<li><p><strong>VI</strong> – (int) approximate half-width of the peaks (needed for pendry r-factor). Default to 10</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -836,8 +920,22 @@ atoms first and last three atoms of the supplied list.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.utilities.ypendry">
 <span class="sig-prename descclassname"><span class="pre">glyP.utilities.</span></span><span class="sig-name descname"><span class="pre">ypendry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d1_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">VI</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.utilities.ypendry" title="Permalink to this definition">¶</a></dt>
-<dd><p>calculate the Pendry Y-function: y=l^-1/(l^-2+VI^2) with l=I’/I (logarithmic derivative),
-J.B. Pendry, J. Phys. C: Solid St. Phys. 13 (1980) 937-44</p>
+<dd><dl class="simple">
+<dt>calculate the Pendry Y-function: y= l^-1/(l^-2+VI^2) with l=I’/I (logarithmic derivative),</dt><dd><p>J.B. Pendry, J. Phys. C: Solid St. Phys. 13 (1980) 937-44</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spec</strong> – </p></li>
+<li><p><strong>d1_spec</strong> – </p></li>
+<li><p><strong>VI</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(2D list) returns the calculated pendry y-function</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
