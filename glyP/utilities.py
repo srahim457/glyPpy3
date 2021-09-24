@@ -10,6 +10,8 @@ from datetime import datetime
 
 def error(msg):
   """ write error message and quit
+
+  :param msg: (string) the message to be outputted 
   """
   sys.stderr.write(msg + "\n")
   sys.exit(3)
@@ -61,21 +63,25 @@ def adjacent_atoms(conn_mat, at):
   return np.nonzero(conn_mat[at,:])[0]
 
 def draw_random():
-  """ draw a random sample
+  """ draw a random float between 0 and 1
 
-  :return: random sample
+  :return: (float) random sample
   """
   return np.random.random_sample()
 
 def draw_random_int(top=1):
-  """ draw a random int
-
+  """ draw a random int between 0-top
+  
+  :param top: (int) the upperbound of the random int generator
   :return: (int) returns a random integer
   """
   return np.random.randint(top)
 
 def element_symbol(A): 
   """ A dictionary for atomic number and atomic symbol
+
+  :param A: either atomic number or atomic symbol for Hydrogen, Carbon, Nitrogen, Oxygen, Fluorine and Silicon
+  :return: the corresponding atomic symbol or atomic number
   """
   periodic_table = { '1' : 'H', '6' : 'C', '7' : 'N', '8' : 'O' , '9' : 'F', '14' : 'Si' }
   return periodic_table[A]
@@ -284,8 +290,12 @@ def set_dihedral(conf, list_of_atoms, new_dih):
 
   #return xyz
 
-def calculate_rmsd(conf1, conf2, atoms=None): #pass 2 conformers instead of just the xyz list 
+def calculate_rmsd(conf1, conf2, atoms=None): 
   """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
+
+  :param conf1: a conformer object
+  :param conf2: another conformer object
+  :atoms: (string) passing the atomic symbol the function will omit those atoms when calculating the rmsd. Most commonly used is 'H' to remove hydrogen
   """
   xyz1 = []
   xyz2 = []
@@ -311,8 +321,8 @@ def deriv(spec,h):
        forward/backward finite difference method up to 2nd order.
        ...as used in f77-program and suggested by Zanazzi-Jona...
 
-       :param spec: (list)
-       :param h: 
+       :param spec: (list) an IR spectrum
+       :param h: (float) the delta x between each data point, must be less than 1 for accurate integral results
        :return: the first derivative of the parameter spec
   """ 
   der_spec =[[i[0],0] for i in spec]
@@ -332,13 +342,13 @@ def get_range(tspec,espec,w_incr,shift,start,stop):
   """determine wavenumber range within the comparison between theoretical
   and experimental spectrum is performed (depends on the shift)
 
-  :param tspec: theoretical spectrum
-  :param espec: experimental spectrum 
-  :param w_incr:
-  :param shift:
-  :param start:
-  :param stop: 
-  :return: 
+  :param tspec: (list) theoretical spectrum
+  :param espec: (list) experimental spectrum 
+  :param w_incr: (float) grid interval of the spectra -- should be 1 or smaller!
+  :param shift: the shift on the spectrum
+  :param start: (int) the starting point on the spectrum
+  :param stop: (int) the ending point on the spectrum
+  :return: (tnstart, tnstop, enstart, enstop) the start and stop for thee range of the theoretical and experimental spectra
   """
   de1=start+shift-espec[0][0]
   if (de1 >= 0 ):
@@ -364,8 +374,8 @@ def get_range(tspec,espec,w_incr,shift,start,stop):
 def integrate(integrand,delta):
   """ integrate using the trapezoid method as Zanazzi-Jona suggested and was used in the f77-program...
 
-  :param integrand: (2D list) 
-  :param delta:
+  :param integrand: (list) A spectrum that is to be integrated
+  :param delta: (float) the delta x in the trapezoidal method, the length of the base of each trapezoid. In implementation it is the increment of the data point of the spectrum, must be less than 1 for accurate integral results
   :return: (float) returns a product of the calculated integral and the delta
   """
   integral = 0.5*(integrand[0][1]+integrand[-1][1])   
@@ -377,9 +387,9 @@ def ypendry(spec,d1_spec,VI):
   """ calculate the Pendry Y-function: y= l^-1/(l^-2+VI^2) with l=I'/I (logarithmic derivative),
       J.B. Pendry, J. Phys. C: Solid St. Phys. 13 (1980) 937-44
 
-  :param spec:
-  :param d1_spec:
-  :param VI:
+  :param spec: (list) a conformer IR spectrum
+  :param d1_spec: (list) the first derivative of the IR spectrum
+  :param VI: (int) approximate half-width of the peaks
   :return: (2D list) returns the calculated pendry y-function
   """
   y=[[i[0],0] for i in spec]
@@ -403,7 +413,9 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
         NOTE: in the f77-program R1 is scaled by 0.75 and R2 is scaled by 0.5; this is not done here
         Please provide a file r-fac.in with the following specifications (without the comment lines!!!) 
         (the numbers are just examples, choose them according to your particular case)
-        
+  
+  :param espec: (list) the experimental spectrum
+  :param tspec: (list) the theoretical spectrum, the conformer spectrum that the experimental spectrum is being compared to    
   :param start: (int) where to start the comparison, default to 1000
   :param stop: (int) where to stop the comparison, default to 1800
   :param w_incr: (float) grid interval of the spectra -- should be 1 or smaller! (otherwise integrations/derivatives are not accurate) Default to 0.5

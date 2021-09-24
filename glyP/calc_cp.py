@@ -52,6 +52,12 @@ def haversine(lon1, lat1, lon2, lat2):
     return c
 
 def find_canon(n1, n2):
+    """ Finds the canonical shape of a puckered ring using 2 angles from the paper by Anthony D. Hill and Peter J. Reilly mentioned in the description of this class
+
+    :param n1: (float) phi angle
+    :param n2: (float) theta angle
+    :return: the canonical shape
+    """
 
     new_dict = {}
     for elem in dict_canon:
@@ -73,6 +79,12 @@ def norm(a):
 
 
 def cp_values(xyz, ring_atoms):
+    """Calculate the puckering angles phi, theta and the canonical shape of the puckered ring
+
+    :param xyz: the position of each atom
+    :param ring_atoms: list of the atoms that are present in a ring 
+    :return: phi, theta and canonical shape
+    """
 
     atoms = numpy.zeros((6, 3), dtype='float64')
     for i  in range(xyz.shape[0]):

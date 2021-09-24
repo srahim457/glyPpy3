@@ -73,9 +73,13 @@ class Space(list):
         return self.__getitem(slice(i,j))
 
     def load_dir(self, path, topol=None):
-        """Loads a directory with data files to be processed
+        """Loads a directory with data files to be processed. The path is just the name of the directory, the function will handle the presence of multiple directories within it.
+
+        :param path: (string) this is the path to the directory with all the conformer data. This directory should be filled with other directories with the intended name of the conformer and it's .xyz and input.log files
+
         """
         print("Loading {0:30s}".format(path))
+        #check if this is wont lead to an error if the path doesnt exist 
         for (root, dirs, files) in os.walk('./'+path):
             #print (root, dirs, files)
             for dirname in dirs:
@@ -95,7 +99,10 @@ class Space(list):
                                         del conf
 
     def load_exp(self, path, ir_resolution=1.0):
-        """Selects the experimental conformer that other conformers will be compared to
+        """Selects the experimental conformer that other conformers will be compared to. Creates/updates the self.expIR member of this class
+
+        :param path: (string) the path to a specific exp.dat file, the path should not just go to the general dir but also include the filename
+        :param ir_resolution: (float) Resolution of the plot. The value is used to make a grid and the ir_resolution is the number of values skipped between each plotted point. Ex: assuming exp is an array size 10 exp = [1...10], and ir_resolution is 3 the values plotted will be [1,4,7]
         """
         self.ir_resolution = ir_resolution 
         expIR= np.genfromtxt(path)
@@ -127,6 +134,7 @@ class Space(list):
         if len(self) != 0: 
             for conf in self: 
                 conf.topol = 'unknown'
+                #the iteration of the graphs edges can lead to bug because the order of the list is unknown. For the conformers to have the same shape the list must have the same content in the same order.
                 conf_links = [ conf.graph.edges[e]['linker_type'] for e in conf.graph.edges]
                 for m in self.models:
                     m_links = [ m.graph.edges[e]['linker_type'] for e in m.graph.edges ]
@@ -177,7 +185,9 @@ class Space(list):
     def reference_to_zero(self, energy_function='E'):
 
         """Finds a conformer with the lowest specified energy function and 
-        references remainins conformers to this.
+        references remaining conformers to this.
+
+        :param energy_function: (char) either E, F or H. The table will be sorted least to greatest in terms of the energy indicated by this parameter. 
         """
 
         Eref = 0.0 ; Fref = 0.0 ; Href = 0.0 
@@ -201,7 +211,7 @@ class Space(list):
                 conf.Erel = conf.E -  Eref
 
     def print_relative(self, alive=None):
-        """
+        """Prints relative energies of each conformer, related to reference_to_zero
         """
 
         if len(self) != 0:
@@ -254,7 +264,10 @@ class Space(list):
 
 
     def calculate_ccs(self, method = 'pa', accuracy = 1):
-        """ 
+        """ Calculates the collision cross section for each conformer. The parameters passed should generally just remain as their defaults values
+
+        :param methond: (string) pa or ehss, methods of calculation
+        :param accuracy: dont change the default, return a value converged within 1%
         """
         for conf in self:  conf.calculate_ccs(self.path, method=method, accuracy=accuracy)
 
@@ -300,7 +313,7 @@ class Space(list):
 
 
     def plot_ccs(self, energy_function='E', ccs_exp=141, xmin=130., xmax=150., ymin = -1., ymax=30., xlabel = 'CCS$^{PA}$ [$\AA{}^2$]'):
-        """
+        """ Coformational free energy vs ccs, for every conformer
         """
 
         from matplotlib.ticker import NullFormatter, FormatStrFormatter

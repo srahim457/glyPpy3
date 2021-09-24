@@ -33,7 +33,7 @@ class Conformer():
     def __init__(self, topol, output_path):
         """Construct a conformer object
 
-        :param topol:
+        :param topol: 
         :param output_path: (string) this specifies the directory any generated IR plots will be placed
         """
         self._id = topol
@@ -63,7 +63,10 @@ class Conformer():
         self.atoms = atoms
 
     def create_input(self, theory, output):
-        """
+        """ Creates the parameters to run simulation in Gaussian
+
+        :param theory: (dict) a dictionary with the simulation parameters
+        :param output: (string) this is the name of the output directory to be created
         """
         if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3':
             theory['disp'] = 'EmpiricalDispersion=GD3'
@@ -95,7 +98,9 @@ class Conformer():
         f.close()
 
     def run_gaussian(self, mpi=False):
-        """
+        """ Opens and runs a simulation in the Gaussian application. To run this function GausView must already be intalled on the device
+
+        :param mpi: (bool) message passing interface, set true to use parallel programming. experimental.
         """
         try: hasattr(self, 'outdir')
         except:
@@ -117,14 +122,22 @@ class Conformer():
         return gauss_job.returncode
 
     def calculate_ccs(self, temp_dir, method = 'pa', accuracy = 1):
-        """
+        """ Calls program sigma to calculate collision cross section, the sigma must be in the PATH variable. Need to change hardcoded paths otherwise it won't work
+
+        :param temp_dir: (string) name of a directory that will be generated to hold onto some files generated during the calculations
+        :param methond: (string) pa or ehss, different methods of calculation
+        :param accuracy: dont change the default, return a value converged within 1%
         """   
+        #make a temp dir to store dat files
+        #need to make a specialized .xyz file for sigma
         with open( temp_dir + '/sig.xyz','w') as ccs:
             ccs.write("{0:3d}\n".format(self.NAtoms))
             for at, xyz in zip(self.atoms, self.xyz):
                 ccs.write("{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] ))
             ccs.close()
-        if method == 'pa': 
+        if method == 'pa':
+            #rewrite with pipe? 
+            #requires a parameter file, needs to be a path variable !!!
             ccs_job = Popen("sigma -f xyz -i " + str(temp_dir + '/sig.xyz') +' -n ' +  str(accuracy) + " -p /home/matma/bin/sigma-parameters.dat", shell=True, stdout=PIPE, stderr=PIPE)
             #out, err = ccs_job.communicate()
             for line in ccs_job.stdout.readlines():
@@ -132,8 +145,11 @@ class Conformer():
                 if re.search('Average PA', line.decode('utf-8')): self.ccs  = float(line.decode('utf-8').split()[4])
 
     def load_log(self, file_path):
+        """ Creates a conformer object using infromation from a file given the file path
+
+        :param file_path: (string) path to file
         """
-        """
+        # why did this try function get commented out?
         #try:
         #    logfile = open(file_path, 'r')
         #except IOError: 
@@ -298,7 +314,10 @@ class Conformer():
         self.IR=np.vstack((X, IR)).T #tspec
 
     def connectivity_matrix(self, distXX, distXH):
-        """
+        """ Creates a connectivity matrix of the molecule. A connectivity matrix holds the information of which atoms are bonded and to what. 
+
+        :param distXX: The max distance between two atoms (not hydrogen) to be considered a bond
+        :param distXH: The max distance between any atom and a hydrogen atom to be considered a bond
         """
         Nat = self.NAtoms
         self.conn_mat = np.zeros((Nat, Nat))
@@ -324,7 +343,7 @@ class Conformer():
             self.Nmols = nx.number_connected_components(cm)
 
     def assign_atoms(self):
-        """
+        """ Labels each atom in the graph with its atomic symbol
         """
         self.graph = nx.DiGraph()
         cm = nx.graph.Graph(self.conn_mat)
@@ -460,14 +479,17 @@ class Conformer():
         #print (self.dih_atoms, self.dih, self.anomer)
 
     def measure_c6(self): 
-        """
+        """Dihedral angle between carbon 5 and carbon 6. Sugars with 1,6 glycosidic bond does not have c6 atoms. This angle would just the angle on the glycocidic bond
         """
         for n in self.graph.nodes:
             if 'c6_atoms' in self.graph.nodes[n]:
                 self.graph.nodes[n]['c6_dih'] = measure_dihedral(self, self.graph.nodes[n]['c6_atoms'])[0]
 
     def set_c6(self, ring, dih):
-        """
+        """Sets a new dihedral angle between carbon 5 and carbon 6
+
+        :param ring: index to indicate which ring is being considered in the molecule
+        :param dih: the new dihedral angle 
         """
         if hasattr(self.graph.nodes[ring], 'c6_atoms'):
             atoms = self.graph.nodes[ring]['c6_dih']
@@ -475,7 +497,7 @@ class Conformer():
         self.measure_c6()
 
     def measure_glycosidic(self):
-        """
+        """ Measures the dihedral angle of the glycosidic bond
         """
         for e in self.graph.edges:
             atoms = self.graph.edges[e]['linker_atoms']
@@ -494,7 +516,11 @@ class Conformer():
             else: self.graph.edges[e]['dihedral'] = [phi, psi]
 
     def set_glycosidic(self, bond, phi, psi, omega=None, gamma=None):
-        """
+        """ Changes the dihedral angle of the glycosidic bond
+
+        :param bond: (int) index of which glycosidic bond to alter
+        :param phi: (float) phi angle
+        :param psi: (float) psi angle 
         """
         #atoms = sort_linkage_atoms(self.dih_atoms[bond])
         atoms = self.graph.edges[bond]['linker_atoms']
@@ -509,7 +535,7 @@ class Conformer():
         self.measure_glycosidic()
 
     def measure_ring(self):
-        """
+        """ Calculates the dihedral angle between rings
         """
         for n in self.graph.nodes:
             atoms = self.graph.nodes[n]['ring_atoms']
@@ -517,36 +543,40 @@ class Conformer():
             self.graph.nodes[n]['ring'] = R; self.graph.nodes[n]['CP'] = [phi, psi]
 
     def update_vector(self):
-        """
+        """ Check if this can be deleted...
+            might not need it
         """
         self.ga_vector = []
         for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
         for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
 
     def update_topol(self, models):
-        """
+        """ Updates topology and checks for proton shifts
         """
         conf_links = [ self.graph.edges[e]['linker_type'] for e in self.graph.edges]
         self.topol = 'unknown'
         for m in models:
             m_links = [ m.graph.edges[e]['linker_type'] for e in m.graph.edges ]
-            mat = self.conn_mat - m.conn_mat 
+            mat = self.conn_mat - m.conn_mat #difference in connectivity
             if not np.any(mat) and conf_links == m_links : 
                 self.topol = m.topol
                 return 0  
             elif conf_links == m_links: 
-                atc = 0
-                acm = np.argwhere(np.abs(mat) == 1)
+                atc = 0 #atom counter
+                acm = np.argwhere(np.abs(mat) == 1) #absolute connectivity matrix
                 for at in acm:
                     if self.atoms[at[0]] == 'H' or self.atoms[at[1]] == 'H': atc += 1 
                 if atc == len(acm):
-                        self.topol = m.topol+'_Hs'
+                        self.topol = m.topol+'_Hs' #identify if there is only proton shifts 
                         return 0  
 
         return 0 
 
     def show_xyz(self, width=600, height=600):
-        """
+        """ Displays a 3D rendering of the conformer using Py3Dmol
+
+        :param width: the width of the display window 
+        :param height: the height of the display window
         """
         XYZ = "{0:3d}\n{1:s}\n".format(self.NAtoms, self._id)
         for at, xyz in zip(self.atoms, self.xyz):
