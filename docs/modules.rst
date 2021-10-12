@@ -5,3 +5,4 @@ glyPmaster
    :maxdepth: 4
 
    glyP
+   run_ga

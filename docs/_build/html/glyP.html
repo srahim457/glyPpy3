@@ -45,6 +45,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="run_ga module" href="run_ga.html" />
     <link rel="prev" title="glyPmaster" href="modules.html" /> 
 </head>
 
@@ -105,6 +106,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#module-glyP">Module contents</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="run_ga.html">run_ga module</a></li>
 </ul>
 </li>
 </ul>
@@ -197,12 +199,36 @@ from cp import cp_values</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.calc_cp.cp_values">
 <span class="sig-prename descclassname"><span class="pre">glyP.calc_cp.</span></span><span class="sig-name descname"><span class="pre">cp_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ring_atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.calc_cp.cp_values" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calculate the puckering angles phi, theta and the canonical shape of the puckered ring</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xyz</strong> – the position of each atom</p></li>
+<li><p><strong>ring_atoms</strong> – list of the atoms that are present in a ring</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>phi, theta and canonical shape</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.calc_cp.find_canon">
 <span class="sig-prename descclassname"><span class="pre">glyP.calc_cp.</span></span><span class="sig-name descname"><span class="pre">find_canon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.calc_cp.find_canon" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Finds the canonical shape of a puckered ring using 2 angles from the paper by Anthony D. Hill and Peter J. Reilly mentioned in the description of this class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n1</strong> – (float) phi angle</p></li>
+<li><p><strong>n2</strong> – (float) theta angle</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the canonical shape</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.calc_cp.haversine">
@@ -250,6 +276,8 @@ The directory tree should have a structure:
 if directory ‘molecule’ holds a directory ‘experimental’, an attibute self.expIR is 
 created using the data found there. 
 for different molecules, different lists can (meaning should!) be made.</p>
+<p>Generally constructing a conformer space is the first thing to do when using this package.
+A conformer space will generate a list of conformers.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.assign_atoms">
 <span class="sig-name descname"><span class="pre">assign_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.assign_atoms" title="Permalink to this definition">¶</a></dt>
@@ -271,7 +299,16 @@ for different molecules, different lists can (meaning should!) be made.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.calculate_ccs">
 <span class="sig-name descname"><span class="pre">calculate_ccs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pa'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accuracy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.calculate_ccs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calculates the collision cross section for each conformer. The parameters passed should generally just remain as their defaults values</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>methond</strong> – (string) pa or ehss, methods of calculation</p></li>
+<li><p><strong>accuracy</strong> – dont change the default, return a value converged within 1%</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.create_connectivity_matrix">
@@ -290,13 +327,26 @@ distXH - cutoff distance between heavy at - hydrogen</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.load_dir">
 <span class="sig-name descname"><span class="pre">load_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.load_dir" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loads a directory with data files to be processed</p>
+<dd><p>Loads a directory with data files to be processed. The path is just the name of the directory, the function will handle the presence of multiple directories within it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – (string) this is the path to the directory with all the conformer data. This directory should be filled with other directories with the intended name of the conformer and it’s .xyz and input.log files</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.load_exp">
 <span class="sig-name descname"><span class="pre">load_exp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ir_resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.load_exp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Selects the experimental conformer that other conformers will be compared to</p>
+<dd><p>Selects the experimental conformer that other conformers will be compared to. Creates/updates the self.expIR member of this class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – (string) the path to a specific exp.dat file, the path should not just go to the general dir but also include the filename</p></li>
+<li><p><strong>ir_resolution</strong> – (float) Resolution of the plot. The value is used to make a grid and the ir_resolution is the number of values skipped between each plotted point. Ex: assuming exp is an array size 10 exp = [1…10], and ir_resolution is 3 the values plotted will be [1,4,7]</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -308,18 +358,25 @@ distXH - cutoff distance between heavy at - hydrogen</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.plot_ccs">
 <span class="sig-name descname"><span class="pre">plot_ccs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">energy_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'E'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccs_exp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">141</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">130.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ymax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlabel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'CCS$^{PA}$</span> <span class="pre">[$\\AA{}^2$]'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.plot_ccs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Coformational free energy vs ccs, for every conformer</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.print_relative">
 <span class="sig-name descname"><span class="pre">print_relative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.print_relative" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Prints relative energies of each conformer, related to reference_to_zero</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.reference_to_zero">
 <span class="sig-name descname"><span class="pre">reference_to_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">energy_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'E'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.reference_to_zero" title="Permalink to this definition">¶</a></dt>
 <dd><p>Finds a conformer with the lowest specified energy function and 
-references remainins conformers to this.</p>
+references remaining conformers to this.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>energy_function</strong> – (char) either E, F or H. The table will be sorted least to greatest in terms of the energy indicated by this parameter.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -355,22 +412,51 @@ set proper flags, to be fixed for only freq calcs) and creates an object</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.assign_atoms">
 <span class="sig-name descname"><span class="pre">assign_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.assign_atoms" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Labels each atom in the graph with its atomic symbol</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.calculate_ccs">
 <span class="sig-name descname"><span class="pre">calculate_ccs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temp_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pa'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accuracy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.calculate_ccs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calls program sigma to calculate collision cross section, the sigma must be in the PATH variable. Need to change hardcoded paths otherwise it won’t work</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>temp_dir</strong> – (string) name of a directory that will be generated to hold onto some files generated during the calculations</p></li>
+<li><p><strong>methond</strong> – (string) pa or ehss, different methods of calculation</p></li>
+<li><p><strong>accuracy</strong> – dont change the default, return a value converged within 1%</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.connectivity_matrix">
 <span class="sig-name descname"><span class="pre">connectivity_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">distXX</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distXH</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.connectivity_matrix" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Creates a connectivity matrix of the molecule. A connectivity matrix holds the information of which atoms are bonded and to what.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>distXX</strong> – The max distance between two atoms (not hydrogen) to be considered a bond</p></li>
+<li><p><strong>distXH</strong> – The max distance between any atom and a hydrogen atom to be considered a bond</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.create_input">
 <span class="sig-name descname"><span class="pre">create_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.create_input" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Creates the parameters to run simulation in Gaussian</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theory</strong> – (dict) a dictionary with the simulation parameters</p></li>
+<li><p><strong>output</strong> – (string) this is the name of the output directory to be created</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.gaussian_broadening">
@@ -390,7 +476,13 @@ generates attribute self.IR - np.array with dimmension 4000/resolution consistin
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.load_log">
 <span class="sig-name descname"><span class="pre">load_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.load_log" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Creates a conformer object using infromation from a file given the file path</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file_path</strong> – (string) path to file</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.load_model">
@@ -406,17 +498,20 @@ generates attribute self.IR - np.array with dimmension 4000/resolution consistin
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.measure_c6">
 <span class="sig-name descname"><span class="pre">measure_c6</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.measure_c6" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Dihedral angle between carbon 5 and carbon 6. Sugars with 1,6 glycosidic bond does not have c6 atoms. This angle would just the angle on the glycocidic bond</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.measure_glycosidic">
 <span class="sig-name descname"><span class="pre">measure_glycosidic</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.measure_glycosidic" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Measures the dihedral angle of the glycosidic bond</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.measure_ring">
 <span class="sig-name descname"><span class="pre">measure_ring</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.measure_ring" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calculates the dihedral angle between rings</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.plot_ir">
@@ -441,32 +536,69 @@ Need to add output directory. Default name is self._id</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.run_gaussian">
 <span class="sig-name descname"><span class="pre">run_gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mpi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.run_gaussian" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Opens and runs a simulation in the Gaussian application. To run this function GausView must already be intalled on the device</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mpi</strong> – (bool) message passing interface, set true to use parallel programming. experimental.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.set_c6">
 <span class="sig-name descname"><span class="pre">set_c6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ring</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dih</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.set_c6" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets a new dihedral angle between carbon 5 and carbon 6</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ring</strong> – index to indicate which ring is being considered in the molecule</p></li>
+<li><p><strong>dih</strong> – the new dihedral angle</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.set_glycosidic">
 <span class="sig-name descname"><span class="pre">set_glycosidic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bond</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.set_glycosidic" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Changes the dihedral angle of the glycosidic bond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bond</strong> – (int) index of which glycosidic bond to alter</p></li>
+<li><p><strong>phi</strong> – (float) phi angle</p></li>
+<li><p><strong>psi</strong> – (float) psi angle</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.show_xyz">
 <span class="sig-name descname"><span class="pre">show_xyz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">600</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.show_xyz" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Displays a 3D rendering of the conformer using Py3Dmol</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>width</strong> – the width of the display window</p></li>
+<li><p><strong>height</strong> – the height of the display window</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.update_topol">
 <span class="sig-name descname"><span class="pre">update_topol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.update_topol" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Updates topology and checks for proton shifts</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.update_vector">
 <span class="sig-name descname"><span class="pre">update_vector</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.update_vector" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check if this can be deleted…
+might not need it</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -596,6 +728,27 @@ Reference
 Rapid calculation of RMSDs using a quaternion-based characteristic polynomial.
 Acta Crystallogr A 61(4):478-480.</p>
 <dl class="py function">
+<dt class="sig sig-object py" id="glyP.rmsd.optimal_rotation_matrix">
+<span class="sig-prename descclassname"><span class="pre">glyP.rmsd.</span></span><span class="sig-name descname"><span class="pre">optimal_rotation_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conformation1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conformation2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.rmsd.optimal_rotation_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the optimal rotation matrix of two conformers. 
+This function is taken from Liu, Pu, Dimitris K. Agrafiotis, and Douglas L. Theobald. “Fast determination of the optimal rotational matrix for macromolecular superpositions.” Journal of computational chemistry 31.7 (2010): 1561-1563.
+Things to revise: 
+-The function is copy and paste the determination of max_eigenvalue from the rmsd function
+-returning the identity matrix if all columns of the adj matrix is too small should be dependent on the size of the conformers in question. Rn it is just hardcoded from the original script. This does not impact this function very much because the case is very unlikely and it returns an identity matrix as an indication of failure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conformation1</strong> – (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the first conformation</p></li>
+<li><p><strong>conformation2</strong> – (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the second conformation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(list) This is a list of floats that indicate the optimal rotation matrix of two conformers. The optimal rotation matrix is the rotation that minimizes rmsd of the two conformers</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="glyP.rmsd.rmsd_qcp">
 <span class="sig-prename descclassname"><span class="pre">glyP.rmsd.</span></span><span class="sig-name descname"><span class="pre">rmsd_qcp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conformation1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conformation2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.rmsd.rmsd_qcp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the RMSD with Theobald’s quaterion-based characteristic polynomial
@@ -616,7 +769,8 @@ Rapid calculation of RMSDs using a quaternion-based characteristic polynomial. A
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.rmsd.test">
 <span class="sig-prename descclassname"><span class="pre">glyP.rmsd.</span></span><span class="sig-name descname"><span class="pre">test</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.rmsd.test" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>This function was just to test the rmsd function. Ignore this. This should just be removed</p>
+</dd></dl>
 
 </div>
 <div class="section" id="module-glyP.utilities">
@@ -674,6 +828,17 @@ cross product of two vectors belonging to it.</p>
 <dt class="sig sig-object py" id="glyP.utilities.calculate_rmsd">
 <span class="sig-prename descclassname"><span class="pre">glyP.utilities.</span></span><span class="sig-name descname"><span class="pre">calculate_rmsd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.utilities.calculate_rmsd" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculate the rmsd of two conformers; how similar the positions of the atoms are to each other</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conf1</strong> – a conformer object</p></li>
+<li><p><strong>conf2</strong> – another conformer object</p></li>
+</ul>
+</dd>
+<dt class="field-even">Atoms</dt>
+<dd class="field-even"><p>(string) passing the atomic symbol the function will omit those atoms when calculating the rmsd. Most commonly used is ‘H’ to remove hydrogen</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -704,8 +869,8 @@ forward/backward finite difference method up to 2nd order.
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>spec</strong> – (list)</p></li>
-<li><p><strong>h</strong> – </p></li>
+<li><p><strong>spec</strong> – (list) an IR spectrum</p></li>
+<li><p><strong>h</strong> – (float) the delta x between each data point, must be less than 1 for accurate integral results</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -733,10 +898,10 @@ of an atom 2</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.utilities.draw_random">
 <span class="sig-prename descclassname"><span class="pre">glyP.utilities.</span></span><span class="sig-name descname"><span class="pre">draw_random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.utilities.draw_random" title="Permalink to this definition">¶</a></dt>
-<dd><p>draw a random sample</p>
+<dd><p>draw a random float between 0 and 1</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>random sample</p>
+<dd class="field-odd"><p>(float) random sample</p>
 </dd>
 </dl>
 </dd></dl>
@@ -744,10 +909,13 @@ of an atom 2</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.utilities.draw_random_int">
 <span class="sig-prename descclassname"><span class="pre">glyP.utilities.</span></span><span class="sig-name descname"><span class="pre">draw_random_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.utilities.draw_random_int" title="Permalink to this definition">¶</a></dt>
-<dd><p>draw a random int</p>
+<dd><p>draw a random int between 0-top</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>(int) returns a random integer</p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>top</strong> – (int) the upperbound of the random int generator</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(int) returns a random integer</p>
 </dd>
 </dl>
 </dd></dl>
@@ -763,12 +931,25 @@ of an atom 2</p>
 <dt class="sig sig-object py" id="glyP.utilities.element_symbol">
 <span class="sig-prename descclassname"><span class="pre">glyP.utilities.</span></span><span class="sig-name descname"><span class="pre">element_symbol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.utilities.element_symbol" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary for atomic number and atomic symbol</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>A</strong> – either atomic number or atomic symbol for Hydrogen, Carbon, Nitrogen, Oxygen, Fluorine and Silicon</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the corresponding atomic symbol or atomic number</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="glyP.utilities.error">
 <span class="sig-prename descclassname"><span class="pre">glyP.utilities.</span></span><span class="sig-name descname"><span class="pre">error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.utilities.error" title="Permalink to this definition">¶</a></dt>
 <dd><p>write error message and quit</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>msg</strong> – (string) the message to be outputted</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -796,16 +977,16 @@ and experimental spectrum is performed (depends on the shift)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tspec</strong> – theoretical spectrum</p></li>
-<li><p><strong>espec</strong> – experimental spectrum</p></li>
-<li><p><strong>w_incr</strong> – </p></li>
-<li><p><strong>shift</strong> – </p></li>
-<li><p><strong>start</strong> – </p></li>
-<li><p><strong>stop</strong> – </p></li>
+<li><p><strong>tspec</strong> – (list) theoretical spectrum</p></li>
+<li><p><strong>espec</strong> – (list) experimental spectrum</p></li>
+<li><p><strong>w_incr</strong> – (float) grid interval of the spectra – should be 1 or smaller!</p></li>
+<li><p><strong>shift</strong> – the shift on the spectrum</p></li>
+<li><p><strong>start</strong> – (int) the starting point on the spectrum</p></li>
+<li><p><strong>stop</strong> – (int) the ending point on the spectrum</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p></p>
+<dd class="field-even"><p>(tnstart, tnstop, enstart, enstop) the start and stop for thee range of the theoretical and experimental spectra</p>
 </dd>
 </dl>
 </dd></dl>
@@ -817,8 +998,8 @@ and experimental spectrum is performed (depends on the shift)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>integrand</strong> – (2D list)</p></li>
-<li><p><strong>delta</strong> – </p></li>
+<li><p><strong>integrand</strong> – (list) A spectrum that is to be integrated</p></li>
+<li><p><strong>delta</strong> – (float) the delta x in the trapezoidal method, the length of the base of each trapezoid. In implementation it is the increment of the data point of the spectrum, must be less than 1 for accurate integral results</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -869,6 +1050,8 @@ Please provide a file r-fac.in with the following specifications (without the co
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>espec</strong> – (list) the experimental spectrum</p></li>
+<li><p><strong>tspec</strong> – (list) the theoretical spectrum, the conformer spectrum that the experimental spectrum is being compared to</p></li>
 <li><p><strong>start</strong> – (int) where to start the comparison, default to 1000</p></li>
 <li><p><strong>stop</strong> – (int) where to stop the comparison, default to 1800</p></li>
 <li><p><strong>w_incr</strong> – (float) grid interval of the spectra – should be 1 or smaller! (otherwise integrations/derivatives are not accurate) Default to 0.5</p></li>
@@ -927,9 +1110,9 @@ atoms first and last three atoms of the supplied list.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>spec</strong> – </p></li>
-<li><p><strong>d1_spec</strong> – </p></li>
-<li><p><strong>VI</strong> – </p></li>
+<li><p><strong>spec</strong> – (list) a conformer IR spectrum</p></li>
+<li><p><strong>d1_spec</strong> – (list) the first derivative of the IR spectrum</p></li>
+<li><p><strong>VI</strong> – (int) approximate half-width of the peaks</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -950,6 +1133,7 @@ atoms first and last three atoms of the supplied list.</p>
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="run_ga.html" class="btn btn-neutral float-right" title="run_ga module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="modules.html" class="btn btn-neutral float-left" title="glyPmaster" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
