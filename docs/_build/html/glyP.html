@@ -279,6 +279,13 @@ for different molecules, different lists can (meaning should!) be made.</p>
 <p>Generally constructing a conformer space is the first thing to do when using this package.
 A conformer space will generate a list of conformers.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="glyP.conf_space.Space.apply_rotation_matrix">
+<span class="sig-name descname"><span class="pre">apply_rotation_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.apply_rotation_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds and applies the rotation matrix to each conformer being optimally rotated to match a conformer in the list of space with the index provided
+:param index: (int) the index in the list of conformers that each confromer will be rotated to match</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="glyP.conf_space.Space.assign_atoms">
 <span class="sig-name descname"><span class="pre">assign_atoms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conf_space.Space.assign_atoms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Labels each atom for each conformer in the space</p>
@@ -534,6 +541,22 @@ Need to add output directory. Default name is self._id</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="glyP.conformer.Conformer.rotation_operation">
+<span class="sig-name descname"><span class="pre">rotation_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotmat</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.rotation_operation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores the following in each conformer obj the name of the conformer it is being rotated to match, the index of that conformer and the rotation matrix.
+The rotation matrix is then multiplied to the existing xyz matrix and the vibrations matrix. Those rotated matrices are also saved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conf_name</strong> – (string) name of the conformer this conformer has been rotated to</p></li>
+<li><p><strong>conf_index</strong> – (int) index of the conformer rotated to, in the list of conformers of the conformer space</p></li>
+<li><p><strong>rotmat</strong> – (3x3 numpy array) the rotation matrix</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="glyP.conformer.Conformer.run_gaussian">
 <span class="sig-name descname"><span class="pre">run_gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mpi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.conformer.Conformer.run_gaussian" title="Permalink to this definition">¶</a></dt>
 <dd><p>Opens and runs a simulation in the Gaussian application. To run this function GausView must already be intalled on the device</p>
@@ -728,9 +751,10 @@ Reference
 Rapid calculation of RMSDs using a quaternion-based characteristic polynomial.
 Acta Crystallogr A 61(4):478-480.</p>
 <dl class="py function">
-<dt class="sig sig-object py" id="glyP.rmsd.optimal_rotation_matrix">
-<span class="sig-prename descclassname"><span class="pre">glyP.rmsd.</span></span><span class="sig-name descname"><span class="pre">optimal_rotation_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conformation1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conformation2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.rmsd.optimal_rotation_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the optimal rotation matrix of two conformers. 
+<dt class="sig sig-object py" id="glyP.rmsd.rmsd_qcp">
+<span class="sig-prename descclassname"><span class="pre">glyP.rmsd.</span></span><span class="sig-name descname"><span class="pre">rmsd_qcp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conformation1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conformation2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.rmsd.rmsd_qcp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the optimal rotation matrix of two conformers and compute the RMSD with Theobald’s quaterion-based characteristic polynomial
+Rapid calculation of RMSDs using a quaternion-based characteristic polynomial. Acta Crystallogr A 61(4):478-480.
 This function is taken from Liu, Pu, Dimitris K. Agrafiotis, and Douglas L. Theobald. “Fast determination of the optimal rotational matrix for macromolecular superpositions.” Journal of computational chemistry 31.7 (2010): 1561-1563.
 Things to revise: 
 -The function is copy and paste the determination of max_eigenvalue from the rmsd function
@@ -740,28 +764,11 @@ Things to revise:
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>conformation1</strong> – (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the first conformation</p></li>
 <li><p><strong>conformation2</strong> – (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the second conformation</p></li>
+<li><p><strong>rotation_matrix</strong> – (bool) parameter that will only return the rotation matrix when set to true. False is the default for the function so it will return the rmsd</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>(list) This is a list of floats that indicate the optimal rotation matrix of two conformers. The optimal rotation matrix is the rotation that minimizes rmsd of the two conformers</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="glyP.rmsd.rmsd_qcp">
-<span class="sig-prename descclassname"><span class="pre">glyP.rmsd.</span></span><span class="sig-name descname"><span class="pre">rmsd_qcp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conformation1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conformation2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#glyP.rmsd.rmsd_qcp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute the RMSD with Theobald’s quaterion-based characteristic polynomial
-Rapid calculation of RMSDs using a quaternion-based characteristic polynomial. Acta Crystallogr A 61(4):478-480.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>conformation1</strong> – (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the first conformation</p></li>
-<li><p><strong>conformation2</strong> – (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the second conformation</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return rmsd</dt>
-<dd class="field-even"><p>(float) the rmsd between two conformers; The root-mean square deviation after alignment between the two pointsets</p>
 </dd>
 </dl>
 </dd></dl>
