@@ -701,4 +701,24 @@ class Conformer():
         output_path = os.path.join(current_path, self.output_path+'/'+self._id+'.png')
         print(output_path + self._id+'.png')
         plt.savefig(output_path, dpi=200)
-           
+        
+    def rotation_operation(self,conf_name, conf_index, rotmat):
+        """Stores the following in each conformer obj the name of the conformer it is being rotated to match, the index of that conformer and the rotation matrix.
+        The rotation matrix is then multiplied to the existing xyz matrix and the vibrations matrix. Those rotated matrices are also saved.
+
+        :param conf_name: (string) name of the conformer this conformer has been rotated to
+        :param conf_index: (int) index of the conformer rotated to, in the list of conformers of the conformer space
+        :param rotmat: (3x3 numpy array) the rotation matrix
+        """
+        self.rotmat = rotmat
+        self.rot_conf_name = conf_name
+        self.rot_conf_index = conf_index
+
+        print(self.rot_conf_name,self.rot_conf_index,self.rotmat)
+
+        self.rot_xyz = np.matmul(self.xyz,self.rotmat)
+        self.rot_Vibs = np.matmul(self.Vibs,self.rotmat)
+
+        #print("xyz\n:",self.xyz,"\nrot xyz:\n", self.rot_xyz)
+        print("Vibs:\n",self.Vibs,"\nrot Vibs:\n", self.rot_Vibs)
+

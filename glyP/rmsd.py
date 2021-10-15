@@ -23,9 +23,7 @@ def _center(conformation):
     centered = conformation - centroid
     return centered
 
-
-
-def optimal_rotation_matrix(conformation1, conformation2, only_rmsd = True):
+def rmsd_qcp(conformation1, conformation2, rotation_matrix = False):
     """Returns the optimal rotation matrix of two conformers and compute the RMSD with Theobald's quaterion-based characteristic polynomial
     Rapid calculation of RMSDs using a quaternion-based characteristic polynomial. Acta Crystallogr A 61(4):478-480.
     This function is taken from Liu, Pu, Dimitris K. Agrafiotis, and Douglas L. Theobald. "Fast determination of the optimal rotational matrix for macromolecular superpositions." Journal of computational chemistry 31.7 (2010): 1561-1563.
@@ -35,7 +33,7 @@ def optimal_rotation_matrix(conformation1, conformation2, only_rmsd = True):
 
     :param conformation1: (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the first conformation
     :param conformation2: (np.ndarray, shape=(n_atoms, 3)) The cartesian coordinates of the second conformation
-    :param only_rmsd: (bool) parameter that will only return the rmsd when set to true. True is the default for the function.
+    :param rotation_matrix: (bool) parameter that will only return the rotation matrix when set to true. False is the default for the function so it will return the rmsd
     :return: (list) This is a list of floats that indicate the optimal rotation matrix of two conformers. The optimal rotation matrix is the rotation that minimizes rmsd of the two conformers
     """
     # center and typecheck the conformations
@@ -113,7 +111,7 @@ def optimal_rotation_matrix(conformation1, conformation2, only_rmsd = True):
     if i >= 50:
         raise ValueError('More than 50 iterations needed.')
 
-    if only_rmsd:
+    if rotation_matrix == False:
         rmsd = np.sqrt(np.abs(2.0 * (E0 - max_eigenvalue) / n_atoms))
         return rmsd
     else:
@@ -204,27 +202,22 @@ def optimal_rotation_matrix(conformation1, conformation2, only_rmsd = True):
         yz = q3 * q4;
         ax = q1 * q2;
 
-        rot=[]
-        rot.append(a2 + x2 - y2 - z2)
-        rot.append(2 * (xy + az))
-        rot.append(2 * (zx - ay))
-        rot.append(2 * (xy - az))
-        rot.append(a2 - x2 + y2 - z2)
-        rot.append(2 * (yz + ax))
-        rot.append(2 * (zx + ay))
-        rot.append(2 * (yz - ax))
-        rot.append(a2 - x2 - y2 + z2)
+        rot=[];row1=[];row2=[];row3=[];
+        row1.append(a2 + x2 - y2 - z2)
+        row2.append(2 * (xy + az))
+        row3.append(2 * (zx - ay))
+        row1.append(2 * (xy - az))
+        row2.append(a2 - x2 + y2 - z2)
+        row3.append(2 * (yz + ax))
+        row1.append(2 * (zx + ay))
+        row2.append(2 * (yz - ax))
+        row3.append(a2 - x2 - y2 + z2)
 
-        rotmat = [];row1=[];row2=[];row3=[];
-        for i in range(3):
-            row1.append(rot[3 * i])
-            row2.append(rot[3 * i + 1])
-            row3.append(rot[3 * i + 2])
-        rotmat.append(row1)
-        rotmat.append(row2)
-        rotmat.append(row3)
+        rot.append(row1)
+        rot.append(row2)
+        rot.append(row3)
 
-        np_rotmat = np.array(rotmat)
+        np_rotmat = np.array(rot)
         return np_rotmat
 
 

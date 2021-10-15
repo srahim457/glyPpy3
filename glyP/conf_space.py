@@ -153,7 +153,7 @@ class Space(list):
                                 conf.topol = m.topol+'_Hs'
                                 break
                     
-#                    if np.array_equal(conf.conn_mat, m.conn_mat) and conf_links == m_links : conf.topol = m.topol
+#if np.array_equal(conf.conn_mat, m.conn_mat) and conf_links == m_links : conf.topol = m.topol
 
 
 
@@ -298,6 +298,16 @@ class Space(list):
         print('assigning atoms')
         for conf in self: conf.assign_atoms()
 
+    def apply_rotation_matrix(self, index):
+        """ Finds and applies the rotation matrix to each conformer being optimally rotated to match a conformer in the list of space with the index provided
+        :param index: (int) the index in the list of conformers that each confromer will be rotated to match
+        """
+        #For each conformer store the rotation matrix and which conformer it is rotated to match
+        conf_name = self[index]._id
+        for conf in self:
+            rotmat = rmsd.rmsd_qcp(self[0].xyz,conf.xyz,True)
+            conf.rotation_operation(conf_name,index,rotmat)
+
 
     def assign_ring_puckers(self): #3
         """Identifies each ring of each conformer in the space
@@ -375,6 +385,5 @@ class Space(list):
         fig.tight_layout()
         fig.savefig('/'.join([self.path, 'ccs_plot.png']), dpi=200, transparent=True)
         fig.savefig('/'.join([self.path, 'ccs_plot.pdf']), dpi=200, transparent=True)
-
 
 
