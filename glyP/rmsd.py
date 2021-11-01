@@ -202,20 +202,10 @@ def rmsd_qcp(conformation1, conformation2, rotation_matrix = False):
         yz = q3 * q4;
         ax = q1 * q2;
 
-        rot=[];row1=[];row2=[];row3=[];
-        row1.append(a2 + x2 - y2 - z2)
-        row2.append(2 * (xy + az))
-        row3.append(2 * (zx - ay))
-        row1.append(2 * (xy - az))
-        row2.append(a2 - x2 + y2 - z2)
-        row3.append(2 * (yz + ax))
-        row1.append(2 * (zx + ay))
-        row2.append(2 * (yz - ax))
-        row3.append(a2 - x2 - y2 + z2)
-
-        rot.append(row1)
-        rot.append(row2)
-        rot.append(row3)
+        row1=[a2 + x2 - y2 - z2,2 * (xy - az),2 * (zx + ay)];
+        row2=[2 * (xy + az),a2 - x2 + y2 - z2,2 * (yz - ax)];
+        row3=[2 * (zx - ay),2 * (yz + ax),a2 - x2 - y2 + z2];
+        rot=[row1,row2,row3];
 
         np_rotmat = np.array(rot)
         return np_rotmat

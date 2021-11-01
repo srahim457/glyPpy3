@@ -118,7 +118,7 @@ class Space(list):
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.xyz'):
-                            conf = Conformer(None)
+                            conf = Conformer(None, self.path)
                             conf.load_model(path+'/'+dirname+'/'+filename)
                             self.models.append(conf)
         self.Nmodels = len(self.models)

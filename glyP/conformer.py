@@ -11,6 +11,7 @@
 #  - self.Vibs - 3D np.array with normal modes of all vibrations
 #  - self.NAtoms - int with number of atoms
 #  - self._ir    - identification/directory name
+#  - self.graph  - each node on this graph is a ring of the conformer
 
 
 import numpy as np
@@ -272,7 +273,7 @@ class Conformer():
 
         print ("%20s%20s   NAtoms=%5d" %(self._id, self.topol, self.NAtoms))
         if hasattr(self, 'F'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
-        else: print("E=%20.4f" %( self.E))
+        #else: print("E=%20.4f" %( self.E))
         for n  in self.graph.nodes:
             ring = self.graph.nodes[n]
             print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='')
@@ -716,8 +717,8 @@ class Conformer():
 
         print(self.rot_conf_name,self.rot_conf_index,self.rotmat)
 
-        self.rot_xyz = np.matmul(self.xyz,self.rotmat)
-        self.rot_Vibs = np.matmul(self.Vibs,self.rotmat)
+        self.rot_xyz = np.matmul(self.rotmat, self.xyz.T).T
+        self.rot_Vibs = np.matmul(self.rotmat,self.Vibs.T).T
 
         #print("xyz\n:",self.xyz,"\nrot xyz:\n", self.rot_xyz)
         print("Vibs:\n",self.Vibs,"\nrot Vibs:\n", self.rot_Vibs)
