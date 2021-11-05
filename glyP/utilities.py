@@ -255,6 +255,7 @@ def set_dihedral(conf, list_of_atoms, new_dih):
   :param new_dih: (float) value of dihedral angle (in degrees) to be set
   :returns: xyz modified numpy array with new atoms positions
   """
+  print("atoms of the planes:", list_of_atoms)
   at1 = list_of_atoms[0]
   at2 = list_of_atoms[1] #midpoint 
   at3 = list_of_atoms[2]
@@ -264,11 +265,13 @@ def set_dihedral(conf, list_of_atoms, new_dih):
 
   #   Determine the axis of rotation:
   old_dih, axor = measure_dihedral(conf, [at1, at2, at3, at4])
+  print("current dihedral:",old_dih)
   norm_axor = np.sqrt(np.sum(axor**2))
   normalized_axor = axor/norm_axor
 
   #   Determine which atoms should be dragged along with the bond:
   carried_atoms = determine_carried_atoms(at2,at3, conf.conn_mat)
+  print("selected atoms:", carried_atoms)
 
   #   Each carried_atom is rotated by Euler-Rodrigues formula:
   #   Reverse if the angle is less than zero, so it rotates in
@@ -285,8 +288,14 @@ def set_dihedral(conf, list_of_atoms, new_dih):
   translation = (xyz[list_of_atoms[1], :]+xyz[list_of_atoms[2], :])/2
 
   for at in carried_atoms:
+    print("atom #:", at)
+    print("original xyz:", xyz[at, :])
     xyz[at, :] = np.dot(rot, xyz[at, :]-translation)
     xyz[at, :] = xyz[at, :]+translation
+    print("new xyz:", xyz[at, :])
+
+  dih, axor = measure_dihedral(conf, [at1, at2, at3, at4])
+  print("new dihedral:", dih, "\n")
 
   #return xyz
 

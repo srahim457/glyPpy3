@@ -11,7 +11,8 @@
 #  - self.Vibs - 3D np.array with normal modes of all vibrations
 #  - self.NAtoms - int with number of atoms
 #  - self._ir    - identification/directory name
-#  - self.graph  - each node on this graph is a ring of the conformer
+#  - self.conn_mat - a NxN matrix, N = num of atoms, containing 0 or 1 indicating if there is a bond present or not
+#  - self.graph  - each node on this graph is a ring of the conformer and contains ring related info
 
 
 import numpy as np
