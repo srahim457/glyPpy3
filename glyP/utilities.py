@@ -299,6 +299,54 @@ def set_dihedral(conf, list_of_atoms, new_dih):
 
   #return xyz
 
+def change_ring_pucker(conf, ring_number, C2_angle, C4_angle, O_angle):
+  """ Edits the ring pucker by assigning a new angle to the C2, C4 and O angles. This is based on the ring puckering model proposed in Puckering Coordinates of Monocyclic Rings by Triangular Decomposition Anthony D. Hill and Peter J. Reilly
+
+  :param conf: a conformer object
+  :param ring_number: (int) selects which ring of the conformer, an index to select the graph node 
+  :param C2_angle: (float) angle for the C2 flap
+  :param C4_angle: (float) angle for the C4 flap
+  :param O_angle: (float) angle for the O flap
+  """
+    
+  ring_atoms = conf.graph.nodes[ring_number]['ring_atoms']
+  print("ring atoms:",ring_atoms)
+    
+  #bond boolean; 0 bond broken, 1 bond exists
+  bond = 0
+  #break the ring bonds for each atom in the ring
+  conf.conn_mat[ring_atoms['C1']][ring_atoms['O']]=bond #C1 - O
+  conf.conn_mat[ring_atoms['O']][ring_atoms['C1']]=bond
+    
+  conf.conn_mat[ring_atoms['C2']][ring_atoms['C3']]=bond #C2 - C3
+  conf.conn_mat[ring_atoms['C3']][ring_atoms['C2']]=bond
+    
+  conf.conn_mat[ring_atoms['C5']][ring_atoms['C4']]=bond #C4 - C5
+  conf.conn_mat[ring_atoms['C4']][ring_atoms['C5']]=bond
+    
+    
+  set_dihedral(conf,[ring_atoms['C3'],ring_atoms['C1'],ring_atoms['C5'],ring_atoms['O']],O_angle)
+  set_dihedral(conf,[ring_atoms['C5'],ring_atoms['C3'],ring_atoms['C1'],ring_atoms['C2']],C2_angle)
+  set_dihedral(conf,[ring_atoms['C1'],ring_atoms['C5'],ring_atoms['C3'],ring_atoms['C4']],C4_angle)
+
+    
+  bond = 0
+  #break the ring bonds for each atom in the ring
+  conf.conn_mat[ring_atoms['C1']][ring_atoms['O']]=bond #C1 - O
+  conf.conn_mat[ring_atoms['O']][ring_atoms['C1']]=bond
+    
+  conf.conn_mat[ring_atoms['C2']][ring_atoms['C3']]=bond #C2 - C3
+  conf.conn_mat[ring_atoms['C3']][ring_atoms['C2']]=bond
+    
+  conf.conn_mat[ring_atoms['C5']][ring_atoms['C4']]=bond #C4 - C5
+  conf.conn_mat[ring_atoms['C4']][ring_atoms['C5']]=bond
+    
+    
+    
+  print(measure_dihedral(conf,[ring_atoms['C3'],ring_atoms['C1'],ring_atoms['C5'],ring_atoms['O']]))
+  print(measure_dihedral(conf,[ring_atoms['C5'],ring_atoms['C3'],ring_atoms['C1'],ring_atoms['C2']]))
+  print(measure_dihedral(conf,[ring_atoms['C1'],ring_atoms['C5'],ring_atoms['C3'],ring_atoms['C4']]))
+
 def calculate_rmsd(conf1, conf2, atoms=None): 
   """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
 
