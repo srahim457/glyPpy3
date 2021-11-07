@@ -265,7 +265,7 @@ def set_dihedral(conf, list_of_atoms, new_dih):
 
   #   Determine the axis of rotation:
   old_dih, axor = measure_dihedral(conf, [at1, at2, at3, at4])
-  print("current dihedral:",old_dih)
+  print("current dihedral:",old_dih,"target dihedral:",new_dih)
   norm_axor = np.sqrt(np.sum(axor**2))
   normalized_axor = axor/norm_axor
 
@@ -299,53 +299,106 @@ def set_dihedral(conf, list_of_atoms, new_dih):
 
   #return xyz
 
-def change_ring_pucker(conf, ring_number, C2_angle, C4_angle, O_angle):
+def topol_dict(topol):
+  """ """
+  topol_table = {
+  '1C4': [-35.26,-35.26,-35.26],
+  '4C1': [35.26,35.26,35.26],
+  '1,4B': [-35.26, 74.20, -35.26],
+  'B1,4': [35.26, -74.20, 35.26], 
+  '2,5B': [74.20, -35.26, -35.26],
+  'B2,5': [-74.20, 35.26, 35.26],
+  '3,6B': [-35.26,-35.26, 74.20],
+  'B3,6': [35.26,35.26,-74.20],
+  '1H2': [-42.16,9.07,-17.83],
+  '2H1': [42.16,-9.07,17.83],
+  '2H3': [42.16,17.83,-9.06],
+  '3H2': [-42.16,-17.83,9.06],
+  '3H4': [-17.83, -42.16,  9.07],
+  '4H3': [17.83, 42.16, - 9.07],
+  '4H5': [-9.07, 42.16, 17.83],
+  '5H4': [9.07, -42.16, -17.83],
+  '5H6': [9.07, -17.83, -42.16],
+  '6H5': [-9.07, 17.83, 42.16],
+  '6H1': [17.83,-9.07,42.16],
+  '1H6': [-17.83,9.07,-2.16],
+  '1S3': [0,50.84,-50.84],
+  '3S1': [0,-50.84,50.84],
+  '5S1': [50.84,-50.84,0],
+  '1S5': [-50.84,50.84,0],
+  '6S2': [-50.84,0,50.84],
+  '2S6': [50.84,0,-50.84],
+  '1E': [-35.26,17.37,-35.26],
+  'E1': [35.26,-17.37,35.26],
+  '2E': [46.86,0,0],
+  'E2': [-46.86,0,0],
+  '3E': [-35.26,-35.26,17.37],
+  'E3': [35.26,35.26,-17.37],
+  '4E': [0,46.86,0],
+  'E4': [0,-46.86,0],
+  '5E': [17.37,-35.26,-35.26],
+  'E5': [-17.37,35.26,35.26],
+  '6E': [0,0,46.86],
+  'E6': [0,0,-46.86]
+  }
+
+  if topol in topol_table:
+    return topol_table[topol]
+  else:
+    error("the provided topology is not in the table\n")
+
+def change_ring_pucker(conf, ring_number,ring_pucker=None):
   """ Edits the ring pucker by assigning a new angle to the C2, C4 and O angles. This is based on the ring puckering model proposed in Puckering Coordinates of Monocyclic Rings by Triangular Decomposition Anthony D. Hill and Peter J. Reilly
 
   :param conf: a conformer object
   :param ring_number: (int) selects which ring of the conformer, an index to select the graph node 
-  :param C2_angle: (float) angle for the C2 flap
-  :param C4_angle: (float) angle for the C4 flap
-  :param O_angle: (float) angle for the O flap
+  :param ring_pucker: (list) or (string) this is the ring puckering angles. Either a list with 3 numbers or a string that defines the intended topology which is looked up in the topol_dict
   """
-    
-  ring_atoms = conf.graph.nodes[ring_number]['ring_atoms']
-  print("ring atoms:",ring_atoms)
-    
-  #bond boolean; 0 bond broken, 1 bond exists
-  bond = 0
-  #break the ring bonds for each atom in the ring
-  conf.conn_mat[ring_atoms['C1']][ring_atoms['O']]=bond #C1 - O
-  conf.conn_mat[ring_atoms['O']][ring_atoms['C1']]=bond
-    
-  conf.conn_mat[ring_atoms['C2']][ring_atoms['C3']]=bond #C2 - C3
-  conf.conn_mat[ring_atoms['C3']][ring_atoms['C2']]=bond
-    
-  conf.conn_mat[ring_atoms['C5']][ring_atoms['C4']]=bond #C4 - C5
-  conf.conn_mat[ring_atoms['C4']][ring_atoms['C5']]=bond
-    
-    
-  set_dihedral(conf,[ring_atoms['C3'],ring_atoms['C1'],ring_atoms['C5'],ring_atoms['O']],O_angle)
-  set_dihedral(conf,[ring_atoms['C5'],ring_atoms['C3'],ring_atoms['C1'],ring_atoms['C2']],C2_angle)
-  set_dihedral(conf,[ring_atoms['C1'],ring_atoms['C5'],ring_atoms['C3'],ring_atoms['C4']],C4_angle)
+
+  #ring_pucker is either a string or a list of 3 numbers
+  #check if it's a string
+  if type(ring_pucker) is str:
+    #finds the associated list for the string in the topology dictionary
+    #the topol_dict function will catch any errors if the string passed does not exist in the dictionary
+    dih_list = topol_dict(ring_pucker)
+    print(dih_list)
+  #checks if it is a list with 3 numbers
+  elif type(ring_pucker) is list and len(ring_pucker) == 3:
+    dih_list = ring_pucker
+  #all other values leads to termination of the function
+  else:
+    error("neither existing topology nor list of 3 dihedral angles are provided")
 
     
-  bond = 0
-  #break the ring bonds for each atom in the ring
-  conf.conn_mat[ring_atoms['C1']][ring_atoms['O']]=bond #C1 - O
-  conf.conn_mat[ring_atoms['O']][ring_atoms['C1']]=bond
+  ra = conf.graph.nodes[ring_number]['ring_atoms']
+  print("ring atoms:",ra)
     
-  conf.conn_mat[ring_atoms['C2']][ring_atoms['C3']]=bond #C2 - C3
-  conf.conn_mat[ring_atoms['C3']][ring_atoms['C2']]=bond
+  #break the ring bonds
+  conf.conn_mat[ra['C1']][ra['O']]=0 #C1 - O
+  conf.conn_mat[ra['O']][ra['C1']]=0
+  conf.conn_mat[ra['C2']][ra['C3']]=0 #C2 - C3
+  conf.conn_mat[ra['C3']][ra['C2']]=0
+  conf.conn_mat[ra['C5']][ra['C4']]=0 #C4 - C5
+  conf.conn_mat[ra['C4']][ra['C5']]=0
+
+  print(180-dih_list[0],180-dih_list[1],180-dih_list[2])
+
+  set_dihedral(conf,[ra['C5'],ra['C3'],ra['C1'],ra['C2']],180-dih_list[0])
+  set_dihedral(conf,[ra['C1'],ra['C5'],ra['C3'],ra['C4']],180-dih_list[1])
+  set_dihedral(conf,[ra['C3'],ra['C1'],ra['C5'],ra['O']],180-dih_list[2])
+
+  #reconnect bonds
+  conf.conn_mat[ra['C1']][ra['O']]=1 #C1 - O
+  conf.conn_mat[ra['O']][ra['C1']]=1
+  conf.conn_mat[ra['C2']][ra['C3']]=1 #C2 - C3
+  conf.conn_mat[ra['C3']][ra['C2']]=1
+  conf.conn_mat[ra['C5']][ra['C4']]=1 #C4 - C5
+  conf.conn_mat[ra['C4']][ra['C5']]=1
     
-  conf.conn_mat[ring_atoms['C5']][ring_atoms['C4']]=bond #C4 - C5
-  conf.conn_mat[ring_atoms['C4']][ring_atoms['C5']]=bond
     
-    
-    
-  print(measure_dihedral(conf,[ring_atoms['C3'],ring_atoms['C1'],ring_atoms['C5'],ring_atoms['O']]))
-  print(measure_dihedral(conf,[ring_atoms['C5'],ring_atoms['C3'],ring_atoms['C1'],ring_atoms['C2']]))
-  print(measure_dihedral(conf,[ring_atoms['C1'],ring_atoms['C5'],ring_atoms['C3'],ring_atoms['C4']]))
+  print(measure_dihedral(conf,[ra['C5'],ra['C3'],ra['C1'],ra['C2']]))
+  print(measure_dihedral(conf,[ra['C1'],ra['C5'],ra['C3'],ra['C4']]))
+  print(measure_dihedral(conf,[ra['C3'],ra['C1'],ra['C5'],ra['O']]))
 
 def calculate_rmsd(conf1, conf2, atoms=None): 
   """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
