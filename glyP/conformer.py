@@ -493,10 +493,10 @@ class Conformer():
         :param ring: index to indicate which ring is being considered in the molecule
         :param dih: the new dihedral angle 
         """
-        if hasattr(self.graph.nodes[ring], 'c6_atoms'):
-            atoms = self.graph.nodes[ring]['c6_dih']
+        if 'c6_atoms' in self.graph.nodes[ring]:
+            atoms = self.graph.nodes[ring]['c6_atoms']
             set_dihedral(self, atoms, dih)
-        self.measure_c6()
+            self.measure_c6()
 
     def measure_glycosidic(self):
         """ Measures the dihedral angle of the glycosidic bond
