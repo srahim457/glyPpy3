@@ -381,7 +381,7 @@ def change_ring_pucker(conf, ring_number,ring_pucker=None):
   conf.conn_mat[ra['C5']][ra['C4']]=0 #C4 - C5
   conf.conn_mat[ra['C4']][ra['C5']]=0
 
-  print(180-dih_list[0],180-dih_list[1],180-dih_list[2])
+  #print(180-dih_list[0],180-dih_list[1],180-dih_list[2])
 
   set_dihedral(conf,[ra['C5'],ra['C3'],ra['C1'],ra['C2']],180-dih_list[0])
   set_dihedral(conf,[ra['C1'],ra['C5'],ra['C3'],ra['C4']],180-dih_list[1])
