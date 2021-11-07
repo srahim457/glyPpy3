@@ -713,14 +713,12 @@ class Conformer():
         :param rotmat: (3x3 numpy array) the rotation matrix
         """
         self.rotmat = rotmat
-        self.rot_conf_name = conf_name
         self.rot_conf_index = conf_index
 
-        print(self.rot_conf_name,self.rot_conf_index,self.rotmat)
-
-        self.rot_xyz = np.matmul(self.rotmat, self.xyz.T).T
-        self.rot_Vibs = np.matmul(self.rotmat,self.Vibs.T).T
+        self.xyz = np.matmul(self.rotmat, self.xyz.T).T
+        for vib in range(3*self.NAtoms-6):
+            self.Vibs[vib,:,:] = np.matmul(self.rotmat,self.Vibs[vib,:,:].T).T
 
         #print("xyz\n:",self.xyz,"\nrot xyz:\n", self.rot_xyz)
-        print("Vibs:\n",self.Vibs,"\nrot Vibs:\n", self.rot_Vibs)
+        #print("Vibs:\n",self.Vibs,"\nrot Vibs:\n", self.rot_Vibs)
 
