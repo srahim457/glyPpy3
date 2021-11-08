@@ -256,7 +256,7 @@ def set_angle(conf, list_of_atoms, new_ang):
 
   #return xyz
 
-def set_dihedral(conf, list_of_atoms, new_dih, incr = False, axis_pos = "bond", threshold = 0.1):
+def set_dihedral(conf, list_of_atoms, new_dih, incr = False, dummy = None, axis_pos = "bond", threshold = 0.1):
 
   """Set a new dihedral angle between two planes defined by
   atoms first and last three atoms of the supplied list.
@@ -270,6 +270,10 @@ def set_dihedral(conf, list_of_atoms, new_dih, incr = False, axis_pos = "bond", 
   at2 = list_of_atoms[1] #midpoint 
   at3 = list_of_atoms[2]
   at4 = list_of_atoms[3]
+  if type(dummy)== np.ndarray: 
+      print("dummy atom")
+      at3_xyz = copy.copy(conf.xyz[at3,:])
+      conf.xyz[at3,:] = dummy[:]
   #xyz = copy.copy(conf.xyz)
   xyz = conf.xyz
 
@@ -329,6 +333,9 @@ def set_dihedral(conf, list_of_atoms, new_dih, incr = False, axis_pos = "bond", 
     xyz[at, :] = np.dot(rot, xyz[at, :]-translation)
     xyz[at, :] = xyz[at, :]+translation
     #print("new xyz:", xyz[at, :])
+
+  if type(dummy) == np.ndarray:
+      conf.xyz[at3,:] = at3_xyz[:]
 
   #dih, axor = measure_dihedral(conf, [at1, at2, at3, at4])
   #print("new dihedral:", dih, "\n")
@@ -434,17 +441,22 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
   for i in range(len(ring_order)-1):
       disconnect_atoms(conf, ra[ring_order[i]],  ra[ring_order[i+1]])
 
-  for n, rat in zip([1,2],[ 'C3', 'C5']):
+  for n, rat in zip([0, 1,2],['C1', 'C3', 'C5']):
 
       differ = new_theta[n] - old_theta[n]
       print (old_theta[n], new_theta[n], differ)
 
-      if abs(differ) < 0.1 or abs(differ) > 359.9 : continue
+      #if abs(differ) < 0.1 or abs(differ) > 359.9 : continue
 
       #if   differ  < 180.0 and differ  > 0.0      : differ =  180.0 - differ
       #elif differ  > 180.0                        : differ = -180.0 + differ
       #elif differ  < 0.0   and differ  > -180.0   : differ = -180.0 - differ
 
+      dih_pen  = [dih_atoms2[n][0], dih_atoms2[n][1], dih_atoms2[n][2],  adjacent_atoms(conf.conn_mat, ra[rat])[0]]
+
+      print(dih_pen)
+      #dummy_coord = (conf.xyz[dih_atoms2[n][1],:] + conf.xyz[dih_atoms2[n][2],:])/2
+      #set_dihedral(conf, dih_pen, 90.0, dummy = dummy_coord)
       set_dihedral(conf, dih_atoms2[n], differ, incr = True, axis_pos="term")
 
 
