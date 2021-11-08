@@ -11,8 +11,9 @@ def run_ga():
             "alive_pool"    : 6,
             "generations"   : 10,
             "prob_dih_mut"  : 0.65,
+            "prob_c6_mut"   : 0.65,
+            "prob_ring_mut" : 0.33,
             "rmsd_cutoff"   : 0.1,
-            "prob_rattle_C6": 0.65
             }
 
 
@@ -127,12 +128,17 @@ def run_ga():
                 while clash:
                     #check for clashing after the mutation
                     for e in offspring.graph.edges: 
+
                         if glyP.utilities.draw_random() < GAsettings['prob_dih_mut']:
                             glyP.ga_operations.modify_glyc(offspring, e)
 
-                    for r in GArun[n].graph.nodes:
-                        if glyP.utilities.draw_random() < GAsettings['prob_rattle_C6']:
+                    for r in offspring.graph.nodes:
+
+                        if glyP.utilities.draw_random() < GAsettings['prob_c6_mut']:
                             glyP.ga_operations.modify_c6(offspring, r)
+
+                        if glyP.utilities.draw_randon() < GAsettings['prob_ring_mut']:
+                            glyP.ga_operations.modify_ring(offspring, r)
 
                     attempt += 1
                     clash = glyP.utilities.clashcheck(offspring)

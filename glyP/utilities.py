@@ -62,6 +62,16 @@ def adjacent_atoms(conn_mat, at):
   """
   return np.nonzero(conn_mat[at,:])[0]
 
+def connect_atoms(conf, at1, at2):
+
+    conf.conn_mat[at1, at2] = 1
+    conf.conn_mat[at2, at1] = 1
+
+def disconnect_atoms(conf, at1, at2):
+
+    conf.conn_mat[at1, at2] = 0
+    conf.conn_mat[at2, at1] = 0
+
 def draw_random():
   """ draw a random float between 0 and 1
 
@@ -246,7 +256,7 @@ def set_angle(conf, list_of_atoms, new_ang):
 
   #return xyz
 
-def set_dihedral(conf, list_of_atoms, new_dih):
+def set_dihedral(conf, list_of_atoms, new_dih, incr = False, axis_pos = "bond", threshold = 0.1):
 
   """Set a new dihedral angle between two planes defined by
   atoms first and last three atoms of the supplied list.
@@ -255,7 +265,7 @@ def set_dihedral(conf, list_of_atoms, new_dih):
   :param new_dih: (float) value of dihedral angle (in degrees) to be set
   :returns: xyz modified numpy array with new atoms positions
   """
-  print("atoms of the planes:", list_of_atoms)
+  #print("atoms of the planes:", list_of_atoms) #It's very poetic
   at1 = list_of_atoms[0]
   at2 = list_of_atoms[1] #midpoint 
   at3 = list_of_atoms[2]
@@ -265,13 +275,20 @@ def set_dihedral(conf, list_of_atoms, new_dih):
 
   #   Determine the axis of rotation:
   old_dih, axor = measure_dihedral(conf, [at1, at2, at3, at4])
-  print("current dihedral:",old_dih,"target dihedral:",new_dih)
+  #print("current dihedral:",old_dih,"target dihedral:",new_dih)
   norm_axor = np.sqrt(np.sum(axor**2))
   normalized_axor = axor/norm_axor
 
+  if incr == True: new_dih = old_dih + new_dih 
+
+  #(get it between -180. - 180.0
+  if   new_dih >=  180.0 : new_dih -= 360.0 
+  elif new_dih <= -180.0 : new_dih += 360.0 
+
   #   Determine which atoms should be dragged along with the bond:
-  carried_atoms = determine_carried_atoms(at2,at3, conf.conn_mat)
-  print("selected atoms:", carried_atoms)
+  #It's done later now.
+  #carried_atoms = determine_carried_atoms(at2,at3, conf.conn_mat)
+  #print("selected atoms:", carried_atoms)
 
   #   Each carried_atom is rotated by Euler-Rodrigues formula:
   #   Reverse if the angle is less than zero, so it rotates in
@@ -279,75 +296,75 @@ def set_dihedral(conf, list_of_atoms, new_dih):
   #   Also, I move the midpoint of the bond to the center for
   #   the rotation step and then move the atom back.
 
-  if old_dih >= 0.0:
-    rot_angle = np.pi*(new_dih - old_dih)/180.
+  #if old_dih >= 0.0:
+  print ("rotation:", old_dih, new_dih)
+  if abs(new_dih - old_dih) < threshold: return 
+
+  if old_dih >= 0.0 :
+      if ( 180.0 - threshold) < new_dih:  new_dih = 180.0 - threshold 
+      rot_angle = new_dih - old_dih
+      rot_angle = np.pi*(rot_angle)/180.
   else:
-    rot_angle = -np.pi*(new_dih - old_dih)/180.
+      if (-180.0 + threshold) > new_dih:  new_dih= -180.0 + threshold 
+      rot_angle = new_dih - old_dih
+      rot_angle = -np.pi*(rot_angle)/180.
 
   rot = expm(np.cross(np.eye(3), normalized_axor*rot_angle))
-  translation = (xyz[list_of_atoms[1], :]+xyz[list_of_atoms[2], :])/2
+
+  if axis_pos == "bond":
+      translation = (xyz[list_of_atoms[1], :]+xyz[list_of_atoms[2], :])/2
+  #   Determine which atoms should be dragged along with the bond:
+      carried_atoms = determine_carried_atoms(at2,at3, conf.conn_mat)
+
+  elif axis_pos == "term":
+      translation = np.array([x for x in xyz[list_of_atoms[3], :]])
+      #Determine which atoms should be dragged along with the bond:
+      carried_atoms = determine_carried_atoms(at3,at4, conf.conn_mat)
+      carried_atoms.remove(at4)
+      print(carried_atoms)
 
   for at in carried_atoms:
-    print("atom #:", at)
-    print("original xyz:", xyz[at, :])
+    #print("atom #:", at)
+    #print("original xyz:", xyz[at, :])
     xyz[at, :] = np.dot(rot, xyz[at, :]-translation)
     xyz[at, :] = xyz[at, :]+translation
-    print("new xyz:", xyz[at, :])
+    #print("new xyz:", xyz[at, :])
 
-  dih, axor = measure_dihedral(conf, [at1, at2, at3, at4])
-  print("new dihedral:", dih, "\n")
+  #dih, axor = measure_dihedral(conf, [at1, at2, at3, at4])
+  #print("new dihedral:", dih, "\n")
 
   #return xyz
 
-def topol_dict(topol):
+def ring_pucker_dict(pucker):
   """ """
   topol_table = {
-  '1C4': [-35.26,-35.26,-35.26],
-  '4C1': [35.26,35.26,35.26],
-  '1,4B': [-35.26, 74.20, -35.26],
-  'B1,4': [35.26, -74.20, 35.26], 
-  '2,5B': [74.20, -35.26, -35.26],
-  'B2,5': [-74.20, 35.26, 35.26],
-  '3,6B': [-35.26,-35.26, 74.20],
-  'B3,6': [35.26,35.26,-74.20],
-  '1H2': [-42.16,9.07,-17.83],
-  '2H1': [42.16,-9.07,17.83],
-  '2H3': [42.16,17.83,-9.06],
-  '3H2': [-42.16,-17.83,9.06],
-  '3H4': [-17.83, -42.16,  9.07],
-  '4H3': [17.83, 42.16, - 9.07],
-  '4H5': [-9.07, 42.16, 17.83],
-  '5H4': [9.07, -42.16, -17.83],
-  '5H6': [9.07, -17.83, -42.16],
-  '6H5': [-9.07, 17.83, 42.16],
-  '6H1': [17.83,-9.07,42.16],
-  '1H6': [-17.83,9.07,-2.16],
-  '1S3': [0,50.84,-50.84],
-  '3S1': [0,-50.84,50.84],
-  '5S1': [50.84,-50.84,0],
-  '1S5': [-50.84,50.84,0],
-  '6S2': [-50.84,0,50.84],
-  '2S6': [50.84,0,-50.84],
-  '1E': [-35.26,17.37,-35.26],
-  'E1': [35.26,-17.37,35.26],
-  '2E': [46.86,0,0],
-  'E2': [-46.86,0,0],
-  '3E': [-35.26,-35.26,17.37],
-  'E3': [35.26,35.26,-17.37],
-  '4E': [0,46.86,0],
-  'E4': [0,-46.86,0],
-  '5E': [17.37,-35.26,-35.26],
-  'E5': [-17.37,35.26,35.26],
-  '6E': [0,0,46.86],
-  'E6': [0,0,-46.86]
+  '1C4' : [ -35.26, -35.26, -35.26],  '4C1': [  35.26,  35.26,  35.26],
+  '1,4B': [ -35.26,  74.20, -35.26], 'B1,4': [  35.26, -74.20,  35.26], 
+  '2,5B': [  74.20, -35.26, -35.26], 'B2,5': [ -74.20,  35.26,  35.26],
+  '3,6B': [ -35.26, -35.26,  74.20], 'B3,6': [  35.26,  35.26, -74.20],
+  '1H2' : [ -42.16,   9.07, -17.83],  '2H1': [  42.16,  -9.07,  17.83],
+  '2H3' : [  42.16,  17.83,  -9.06],  '3H2': [ -42.16, -17.83,   9.06],
+  '3H4' : [ -17.83, -42.16,   9.07],  '4H3': [  17.83,  42.16,  -9.07],
+  '4H5' : [  -9.07,  42.16,  17.83],  '5H4': [   9.07, -42.16, -17.83],
+  '5H6' : [   9.07, -17.83, -42.16],  '6H5': [  -9.07,  17.83,  42.16],
+  '6H1' : [  17.83,  -9.07,  42.16],  '1H6': [ -17.83,   9.07,  -2.16],
+  '1S3' : [   0.00,  50.84, -50.84],  '3S1': [   0.00, -50.84,  50.84],
+  '5S1' : [  50.84, -50.84,   0.00],  '1S5': [ -50.84,  50.84,   0.00],
+  '6S2' : [ -50.84,   0.00,  50.84],  '2S6': [  50.84,   0.00, -50.84],
+  '1E'  : [ -35.26,  17.37, -35.26],  'E1' : [  35.26, -17.37,  35.26],
+  '2E'  : [  46.86,   0.00,   0.00],  'E2' : [ -46.86,   0.00,   0.00],
+  '3E'  : [ -35.26, -35.26,  17.37],  'E3' : [  35.26,  35.26, -17.37],
+  '4E'  : [   0.00,  46.86,   0.00],  'E4' : [   0.00, -46.86,   0.00],
+  '5E'  : [  17.37, -35.26, -35.26],  'E5' : [ -17.37,  35.26,  35.26],
+  '6E'  : [   0.00,   0.00,  46.86],  'E6' : [   0.00,   0.00, -46.86]
   }
 
-  if topol in topol_table:
-    return topol_table[topol]
+  if pucker in topol_table:
+    return topol_table[pucker]
   else:
     error("the provided topology is not in the table\n")
 
-def change_ring_pucker(conf, ring_number,ring_pucker=None):
+def set_ring_pucker(conf, ring_number,ring_pucker=None):
   """ Edits the ring pucker by assigning a new angle to the C2, C4 and O angles. This is based on the ring puckering model proposed in Puckering Coordinates of Monocyclic Rings by Triangular Decomposition Anthony D. Hill and Peter J. Reilly
 
   :param conf: a conformer object
@@ -357,15 +374,19 @@ def change_ring_pucker(conf, ring_number,ring_pucker=None):
 
   #ring_pucker is either a string or a list of 3 numbers
   #check if it's a string
+
   if type(ring_pucker) is str:
     #finds the associated list for the string in the topology dictionary
     #the topol_dict function will catch any errors if the string passed does not exist in the dictionary
-    dih_list = topol_dict(ring_pucker)
-    print(dih_list)
+
+    new_theta  = ring_pucker_dict(ring_pucker)
+    #print(dih_list)
+
   #checks if it is a list with 3 numbers
+
   elif type(ring_pucker) is list and len(ring_pucker) == 3:
-    dih_list = ring_pucker
-  #all other values leads to termination of the function
+     new_theta  = ring_pucker
+
   else:
     error("neither existing topology nor list of 3 dihedral angles are provided")
 
@@ -374,31 +395,58 @@ def change_ring_pucker(conf, ring_number,ring_pucker=None):
   print("ring atoms:",ra)
     
   #break the ring bonds
-  conf.conn_mat[ra['C1']][ra['O']]=0 #C1 - O
-  conf.conn_mat[ra['O']][ra['C1']]=0
-  conf.conn_mat[ra['C2']][ra['C3']]=0 #C2 - C3
-  conf.conn_mat[ra['C3']][ra['C2']]=0
-  conf.conn_mat[ra['C5']][ra['C4']]=0 #C4 - C5
-  conf.conn_mat[ra['C4']][ra['C5']]=0
 
-  #print(180-dih_list[0],180-dih_list[1],180-dih_list[2])
+  dih_atoms = [
+         [ra['C5'],ra['C3'],ra['C1'],ra['C2']],
+         [ra['C1'],ra['C5'],ra['C3'],ra['C4']],
+         [ra['C3'],ra['C1'],ra['C5'],ra['O' ]]]
+  dih_atoms2= [
+         [ra['C4'],ra['C2'],ra['O' ],ra['C1']],
+         [ra['O' ],ra['C4'],ra['C2'],ra['C3']],
+         [ra['C2'],ra['O' ],ra['C4'],ra['C5']]]
 
-  set_dihedral(conf,[ra['C5'],ra['C3'],ra['C1'],ra['C2']],180-dih_list[0])
-  set_dihedral(conf,[ra['C1'],ra['C5'],ra['C3'],ra['C4']],180-dih_list[1])
-  set_dihedral(conf,[ra['C3'],ra['C1'],ra['C5'],ra['O']],180-dih_list[2])
+  #at => any atom
+  #rat => atom in a ring
 
-  #reconnect bonds
-  conf.conn_mat[ra['C1']][ra['O']]=1 #C1 - O
-  conf.conn_mat[ra['O']][ra['C1']]=1
-  conf.conn_mat[ra['C2']][ra['C3']]=1 #C2 - C3
-  conf.conn_mat[ra['C3']][ra['C2']]=1
-  conf.conn_mat[ra['C5']][ra['C4']]=1 #C4 - C5
-  conf.conn_mat[ra['C4']][ra['C5']]=1
-    
-    
-  print(measure_dihedral(conf,[ra['C5'],ra['C3'],ra['C1'],ra['C2']]))
-  print(measure_dihedral(conf,[ra['C1'],ra['C5'],ra['C3'],ra['C4']]))
-  print(measure_dihedral(conf,[ra['C3'],ra['C1'],ra['C5'],ra['O']]))
+  adj_atoms = [] ; old_theta = []
+  for rat in ['C1', 'C3', 'C5']:
+      adj_atoms.append(adjacent_atoms(conf.conn_mat, ra[rat]))
+      for at in adj_atoms[-1]:
+          disconnect_atoms(conf, ra[rat], at)
+
+  for rat1, rat2 in zip(['C1', 'C3', 'C5'], ['C2', 'C4', 'O']): 
+      connect_atoms(conf, ra[rat1], ra[rat2])
+
+  for n in range(3):
+      old  = measure_dihedral( conf, dih_atoms[n])[0]
+      #print (old)
+      if   old < 180.0 and old > 0.0      : old =  180.0 - old
+      elif old > 180.0                    : old = -180.0 + old
+      elif old < 0.0   and old > -180.0   : old = -180.0 - old 
+      old_theta.append(old)
+      set_dihedral(conf, dih_atoms[n], 180.0-new_theta[n])
+
+  for n, rat in enumerate(['C1', 'C3', 'C5']):
+     for at in adj_atoms[n]:
+         connect_atoms(conf, ra[rat], at) 
+
+  ring_order = ['C1', 'C2', 'C3', 'C4', 'C5', 'O', 'C1']
+  for i in range(len(ring_order)-1):
+      disconnect_atoms(conf, ra[ring_order[i]],  ra[ring_order[i+1]])
+
+  for n, rat in zip([1,2],[ 'C3', 'C5']):
+
+      differ = new_theta[n] - old_theta[n]
+      print (old_theta[n], new_theta[n], differ)
+
+      if abs(differ) < 0.1 or abs(differ) > 359.9 : continue
+
+      #if   differ  < 180.0 and differ  > 0.0      : differ =  180.0 - differ
+      #elif differ  > 180.0                        : differ = -180.0 + differ
+      #elif differ  < 0.0   and differ  > -180.0   : differ = -180.0 - differ
+
+      set_dihedral(conf, dih_atoms2[n], differ, incr = True, axis_pos="term")
+
 
 def calculate_rmsd(conf1, conf2, atoms=None): 
   """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
