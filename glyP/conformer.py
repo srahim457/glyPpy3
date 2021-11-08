@@ -574,6 +574,16 @@ class Conformer():
 
         return 0 
 
+    def save_xyz(self, output="geom.xyz" ):
+
+        xyz_file=output
+        f = open(xyz_file, 'w')
+        f.write('{0:3d}\n'.format(self.NAtoms))
+        f.write('xyz test file\n')
+        for at, xyz in zip(self.atoms, self.xyz):
+            line = '{0:5s} {1:10.3f} {2:10.3f} {3:10.3f}\n'.format(at, xyz[0], xyz[1], xyz[2])
+            f.write(line)
+
     def show_xyz(self, width=600, height=600):
         """ Displays a 3D rendering of the conformer using Py3Dmol
 
