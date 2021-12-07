@@ -9,7 +9,7 @@ def run_ga():
     GAsettings = {
             "initial_pool"  : 10,
             "alive_pool"    : 6,
-            "generations"   : 10,
+            "generations"   : 30,
             "prob_dih_mut"  : 0.65,
             "prob_c6_mut"   : 0.65,
             "prob_ring_mut" : 0.33,
@@ -42,6 +42,7 @@ def run_ga():
             glyP.utilities.error("The directory of models is empty")
 
         out.flush()
+
         while n < GAsettings['initial_pool']:
 
             #generate new conformers with existing topol, in order to have num of conformers == size of initial pool 
@@ -64,6 +65,7 @@ def run_ga():
 
                     for r in GArun[n].graph.nodes:
                         glyP.ga_operations.modify_c6(GArun[n], r)
+                        #glyP.ga_operations.modify_ring(GArun[n], r)
 
                     attempt += 1 #records the number of attempts before a modification without clashes occurs
                     clash = glyP.utilities.clashcheck(GArun[n])
