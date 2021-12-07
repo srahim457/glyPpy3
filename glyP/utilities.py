@@ -188,8 +188,14 @@ def measure_dihedral(conf, list_of_atoms):
 
   :param list_of_atoms: (list) list of 4 atoms
   """
-  plane1 = calculate_normal_vector(conf, list_of_atoms[:3])
-  plane2 = calculate_normal_vector(conf, list_of_atoms[1:])
+  if len(list_of_atoms) == 4:
+    plane1 = calculate_normal_vector(conf, list_of_atoms[:3])
+    plane2 = calculate_normal_vector(conf, list_of_atoms[1:])
+  else:
+    plane1 = calculate_normal_vector(conf, list_of_atoms[:3])
+    print(list_of_atoms[:3])
+    plane2 = calculate_normal_vector(conf, list_of_atoms[3:])
+    print(list_of_atoms[3:])
   #   Calculate the axis of rotation (axor)
   axor = np.cross(plane1, plane2)
 
@@ -434,6 +440,7 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
   for i in range(len(ring_order)-1):
       disconnect_atoms(conf, ra[ring_order[i]],  ra[ring_order[i+1]])
 
+  #[0,1,2] and [C1,C3,C5]
   for n, rat in zip([1,2],[ 'C3', 'C5']):
 
       differ = new_theta[n] - old_theta[n]
@@ -447,6 +454,124 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
 
       set_dihedral(conf, dih_atoms2[n], differ, incr = True, axis_pos="term")
 
+def determine_subst_carried_atoms(at, ra, conn_mat):
+
+  """Find all atoms necessary to be carried over during rotation
+  of an atom. This is the modified version for the tilt function
+
+  :param at: the xyz coordinates of the ring carbon that is being rotated in place
+  :param ra: the ring atoms dictionary
+  :param conn_matt: the connectivity matrix of a conformer
+  """
+  #   1. Zero the connections in connectivity matrix
+  tmp_conn = np.copy(conn_mat)
+  print(ra)
+  print("adj to ",at,":",adjacent_atoms(tmp_conn, at))
+  for i in adjacent_atoms(conn_mat, at):
+    if i in ra.values():
+      tmp_conn[at, i] = 0
+      tmp_conn[i, at] = 0
+  print("now adj to ",at,":",adjacent_atoms(tmp_conn, at))
+  
+  import networkx as nx
+  cm = nx.graph.Graph(tmp_conn)
+  if nx.is_connected(cm) == True:
+      print("Matrix still connected")
+
+  #   2. Determine the connected atoms:
+  carried_atoms = [at]
+  start = True
+  while start:
+      start = False
+      #   Always iterate over entire list because of branching
+      for at in carried_atoms:
+          #   List of indexes of connected atoms:
+          conn_atoms = np.where(tmp_conn[at] != 0)[0]
+          conn_atoms.tolist
+          for x in conn_atoms:
+              if x not in carried_atoms:
+                  carried_atoms.append(x)
+                  start = True
+  return carried_atoms
+  
+
+def tilt(conf, ring_number,sel_C,new_dih):
+  """ Changes the angle of the substituent plane formed by a ring carbon and the non-ring atoms bonded to it in respect to the plane formed by the ring atoms
+  :param conf: The index of the conformer
+  :param ring_number: The index of the ring of the conformer
+  :param sel_C: The name of the carbon selected ie "C1" "C3" (note: this function only works on C1 and C3)
+  :param new_dih: The angle to set the 2 planes
+  """
+  #find the norm of the even ring plane, O,C2,C4
+  ra = conf.graph.nodes[ring_number]['ring_atoms']
+  r_atoms = [ra['O'],ra['C2'],ra['C4']]
+  r_norm=calculate_normal_vector(conf,r_atoms) #r_atoms are the even ring atoms
+  print(r_norm)
+  #find the norm of the substituent plane
+  #the order of the substituent atoms will be [The heavy atom (usually either O or C), C (the ring carbon), H]; order is kept consistent so that the angle measure is consistent
+  s_atoms = [ra[sel_C]] #s_atoms are the substituent atoms
+  print(ra)
+  for i in adjacent_atoms(conf.conn_mat, ra[sel_C]):
+    if i not in ra.values():
+      s_atoms.append(i)
+  print(s_atoms)
+  s_norm=calculate_normal_vector(conf,s_atoms)
+  print(s_norm)
+  #Check if the norm are perpendicular to each other
+  print(np.dot(r_norm,s_norm))
+  #Otherwise find the angle between the norms and the complement. This is the angle we need to rotate the substituent plane
+  #using the measure dihedral function to find the angle between the plane
+  all_atoms = r_atoms + s_atoms
+  print(measure_dihedral(conf, all_atoms))
+
+  #edited version of the existing set dihedral function -----------------------------------
+  at1 = all_atoms[0]
+  at2 = all_atoms[1] #midpoint 
+  at3 = all_atoms[2]
+  at4 = all_atoms[3]
+  at5 = all_atoms[4]
+  at6 = all_atoms[5]
+  #xyz = copy.copy(conf.xyz)
+  xyz = conf.xyz
+
+  #   Determine the axis of rotation:
+  old_dih, axor = measure_dihedral(conf, all_atoms)
+  norm_axor = np.sqrt(np.sum(axor**2))
+  normalized_axor = axor/norm_axor
+
+  #hardcoded and threshold
+  threshold = 0.1
+
+  #if old_dih >= 0.0:
+  print ("rotation:", old_dih, new_dih)
+  if abs(new_dih - old_dih) < threshold: return 
+
+  if old_dih >= 0.0 :
+      if ( 180.0 - threshold) < new_dih:  new_dih = 180.0 - threshold 
+      rot_angle = new_dih - old_dih
+      rot_angle = np.pi*(rot_angle)/180.
+  else:
+      if (-180.0 + threshold) > new_dih:  new_dih= -180.0 + threshold 
+      rot_angle = new_dih - old_dih
+      rot_angle = -np.pi*(rot_angle)/180.
+
+  rot = expm(np.cross(np.eye(3), normalized_axor*rot_angle))
+
+  #axis position is = 'term'
+  translation = np.array([x for x in xyz[all_atoms[3], :]])
+  print("Translation:",translation)
+  #Determine which atoms should be dragged along with the bond:
+  carried_atoms = determine_subst_carried_atoms(at4, ra, conf.conn_mat)
+  carried_atoms.remove(at4)
+  print(carried_atoms)
+  
+  for at in carried_atoms:
+    #print("atom #:", at)
+    #print("original xyz:", xyz[at, :])
+    xyz[at, :] = np.dot(rot, xyz[at, :]-translation)
+    xyz[at, :] = xyz[at, :]+translation
+    #print("new xyz:", xyz[at, :])
+  print(measure_dihedral(conf, all_atoms))
 
 def calculate_rmsd(conf1, conf2, atoms=None): 
   """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
