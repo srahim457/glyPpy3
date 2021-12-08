@@ -38,8 +38,8 @@ def run_ga():
             GArun.sort_energy(energy_function='E')
             GArun.reference_to_zero(energy_function='E')
             GArun.print_relative(alive=10)
-        else:
-            glyP.utilities.error("The directory of models is empty")
+        #else:
+        #    glyP.utilities.error("The directory of models is empty")
 
         out.flush()
 
@@ -85,7 +85,7 @@ def run_ga():
 
             #sometimes in calculation a mol will break into 2 molecules (ex torsion), this checks if the current molecule disociates into 2 fragments. If so it is removed.
             if GArun[n].Nmols > 1: 
-                print("{0:3d} molecules present, remove".format(GArun[n].Nmols)
+                print("{0:3d} molecules present, remove".format(GArun[n].Nmols))
                 del GArun[n] ; continue 
 
             #checks for copies
@@ -139,10 +139,11 @@ def run_ga():
                         if glyP.utilities.draw_random() < GAsettings['prob_c6_mut']:
                             glyP.ga_operations.modify_c6(offspring, r)
 
-                        if glyP.utilities.draw_randon() < GAsettings['prob_ring_mut']:
+                        if glyP.utilities.draw_random() < GAsettings['prob_ring_mut']:
                             glyP.ga_operations.modify_ring(offspring, r)
 
                     attempt += 1
+                    #if attempt > 50: 
                     clash = glyP.utilities.clashcheck(offspring)
         
                 print("Attempt {0:3d}".format(attempt), end='\n')
@@ -159,7 +160,7 @@ def run_ga():
             print(offspring)
 
             if offspring.Nmols > 1: 
-                print("{0:3d} molecules present, remove".format(offspring.Nmols)
+                print("{0:3d} molecules present, remove".format(offspring.Nmols))
                 del offspring ; continue 
 
 

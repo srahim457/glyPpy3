@@ -33,7 +33,7 @@ def get_distance(at1, at2):
   """
   return math.sqrt((at1[0]-at2[0])**2+(at1[1]-at2[1])**2+(at1[2]-at2[2])**2)
 
-def clashcheck(conf, cutoff=1.0):
+def clashcheck(conf, cutoff=1.2):
   """Checks if there is a clash between atoms
   
   :param conf: passes a conformer object
@@ -199,7 +199,7 @@ def measure_dihedral(conf, list_of_atoms):
   norm = norm_plane1 * norm_plane2
 
   #   Measure the angle between two planes:
-  dot_product = np.dot(plane1, plane2)/norm
+  dot_product = np.clip(np.dot(plane1, plane2)/norm, -0.99999999, 0.99999999)
   alpha = np.arccos(dot_product)
 
   #   The cosine function is symetric thus, to distinguish between
@@ -504,6 +504,10 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
 
       if abs(differ) < 0.1 or abs(differ) > 359.9 : continue
       set_dihedral(conf, dih_atoms2[n], differ, incr = True, axis_pos="term")
+
+  # Reconnect:
+  for i in range(len(ring_order)-1):
+      connect_atoms(conf, ra[ring_order[i]],  ra[ring_order[i+1]])
 
 
 def calculate_rmsd(conf1, conf2, atoms=None): 

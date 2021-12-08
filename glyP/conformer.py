@@ -22,7 +22,7 @@ from .utilities import *
 import networkx as nx
 from operator import itemgetter, attrgetter
 import matplotlib.pyplot as plt
-import py3Dmol as p3D
+#import py3Dmol as p3D
 
 class Conformer():
 
@@ -70,8 +70,8 @@ class Conformer():
         :param theory: (dict) a dictionary with the simulation parameters
         :param output: (string) this is the name of the output directory to be created
         """
-        if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3':
-            theory['disp'] = 'EmpiricalDispersion=GD3'
+        if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3BJ':
+            theory['disp'] = 'EmpiricalDispersion=GD3BJ'
         else: 
             theory['disp'] = ' '
 
