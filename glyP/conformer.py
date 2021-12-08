@@ -22,7 +22,7 @@ from .utilities import *
 import networkx as nx
 from operator import itemgetter, attrgetter
 import matplotlib.pyplot as plt
-#import py3Dmol as p3D
+import py3Dmol as p3D
 
 class Conformer():
 
