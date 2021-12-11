@@ -97,6 +97,11 @@ def element_symbol(A):
   periodic_table = { '1' : 'H', '6' : 'C', '7' : 'N', '8' : 'O' , '9' : 'F', '14' : 'Si' }
   return periodic_table[A]
 
+def element_number(A):
+
+  periodic_table = { 'H' : 1, 'C' : 6, 'N' : 7, 'O' : 8 , 'F' : 9, 'Si' : 14 }
+  return periodic_table[A]
+
 def calculate_ring(xyz, ring_atoms):
   """ Calculates the dihedral angle between rings
 
@@ -395,7 +400,7 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
   else:
     error("neither existing topology nor list of 3 dihedral angles are provided")
   ra = conf.graph.nodes[ring_number]['ring_atoms']
-  print("ring atoms:",ra)
+  #print("ring atoms:",ra)
     
   #break the ring bonds
   #Flip, Twist, Tilt:
@@ -463,7 +468,7 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
           plane_odd_vec = calculate_normal_vector(conf, op_atoms)
           norm_op = plane_odd_vec / np.sqrt(np.sum(plane_odd_vec**2))
           dot_product = np.dot(norm_ep, norm_op) ; rot_angle =  np.pi/2 - np.arccos(dot_product) 
-          print(rot_angle, (rot_angle*180.0)/np.pi)
+          #print(rot_angle, (rot_angle*180.0)/np.pi)
           #if rot_angle < 0.01 or step > 10 : break
           axor = np.cross(norm_ep, norm_op) 
           rot = expm(np.cross(np.eye(3), axor*rot_angle)) ; translation = conf.xyz[op_atoms[1], :]
@@ -491,7 +496,7 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
 
       axor = np.cross(norm_ep_perp, norm_op)
       rot = expm(np.cross(np.eye(3), axor*rot_angle)) ; translation = conf.xyz[op_atoms[1],:]
-      print(carried_atoms, rot_angle) 
+      #print(carried_atoms, rot_angle) 
       #Do the rotation on all atoms
       for at in carried_atoms:
           conf.xyz[at, :] = np.dot(rot, conf.xyz[at, :]-translation)
