@@ -45,10 +45,21 @@ def modify_c6(conf, ring):
         dih = ((utilities.draw_random_int(top=3)-1)*120.0)+60.0
         conf.set_c6(ring, dih)
 
-def modify_ring(conf, ring, phi, psi):
-    """ This does nothing at the moment
-    """
-    pass
+def modify_ring(conf, ring, pucker="random"):
+
+    if pucker == "random":
+        n = utilities.draw_random_int(top=38)
+        puckers = [  '1C4' ,  '4C1', '1,4B', 'B1,4',  '2,5B', 'B2,5', '3,6B', 'B3,6', '1H2' ,  '2H1',  '2H3' ,  '3H2', '3H4' ,  '4H3',  '4H5' ,  '5H4', '5H6' , '6H5',  '6H1' ,  '1H6', '1S3' , '3S1', '5S1' ,  '1S5',  '6S2' ,  '2S6',  '1E'  , 'E1' , '2E'  , 'E2' , '3E', 'E3', '4E', 'E4', '5E', 'E5',  '6E',  'E6' ]
+        pucker = puckers[n]
+    utilities.set_ring_pucker(conf, ring, pucker)
+
+def draw_random_pucker():
+
+    n = utilites.draw_random_int(top=38)
+    puckers = [  '1C4' ,  '4C1', '1,4B', 'B1,4',  '2,5B', 'B2,5', '3,6B', 'B3,6', '1H2' ,  '2H1',  '2H3' ,  '3H2', '3H4' ,  '4H3',  '4H5' ,  '5H4',\
+  '5H6' ,  '6H5',  '6H1' ,  '1H6',  '1S3' ,  '3S1',  '5S1' ,  '1S5',  '6S2' ,  '2S6',  '1E'  ,  'E1' ,  '2E'  ,  'E2' ,  '3E'  ,  'E3' ,\
+  '4E'  ,  'E4' ,   '5E'  ,  'E5' ,  '6E'  ,  'E6' ]
+    return puckers[n]
 
 def cross_over(conf1, conf2):
     """Swaps angle measures of two conformers

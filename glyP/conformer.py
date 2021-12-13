@@ -64,19 +64,14 @@ class Conformer():
         self.xyz = np.array(geom)
         self.atoms = atoms
 
-    def create_input(self, theory, output):
+    def create_input(self, theory, output,  software = 'g16'):
+
         """ Creates the parameters to run simulation in Gaussian
 
         :param theory: (dict) a dictionary with the simulation parameters
         :param output: (string) this is the name of the output directory to be created
         """
-        if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3':
-            theory['disp'] = 'EmpiricalDispersion=GD3'
-        else: 
-            theory['disp'] = ' '
-
         outdir = '/'.join([output, self._id])
-        input_file = outdir + '/input.com'
         self.outdir = outdir
         try:
             os.makedirs(outdir)
@@ -85,21 +80,56 @@ class Conformer():
                 for filename in ifiles[2]:
                     os.remove('/'.join([outdir,filename])) 
 
-        f = open(input_file, 'w')
-        f.write('%nproc=' + str(theory['nprocs'])+'\n')
-        f.write('%mem='+theory['mem']+'\n')
-        f.write(' '.join(['#P', theory['method'], theory['basis_set'],  theory['jobtype'], theory['other_options'], theory['disp'], '\n']))
-        f.write('\n')
-        f.write(self._id + '\n')
-        f.write('\n ')
-        f.write(str(theory['charge']) + ' ' + str(theory['multiplicity']) + '\n')
-        for at, xyz in zip(self.atoms, self.xyz):
-            line = '{0:5s} {1:10.3f} {2:10.3f} {3:10.3f}\n'.format(at, xyz[0], xyz[1], xyz[2])
-            f.write(line)
-        f.write(' ')
-        f.close()
+        if software == 'g16':
+            if theory['disp'] == True or theory['disp'] == 'EmpiricalDispersion=GD3BJ':
+                theory['disp'] = 'EmpiricalDispersion=GD3BJ'
+            else: 
+                theory['disp'] = ' '
 
-    def run_gaussian(self, mpi=False):
+            input_file = outdir + '/input.com'
+            f = open(input_file, 'w')
+            f.write('%nproc=' + str(theory['nprocs'])+'\n')
+            f.write('%mem='+theory['mem']+'\n')
+            f.write(' '.join(['#P', theory['method'], theory['basis_set'],  theory['jobtype'], theory['other_options'], theory['disp'], '\n']))
+            f.write('\n')
+            f.write(self._id + '\n')
+            f.write('\n ')
+            f.write(str(theory['charge']) + ' ' + str(theory['multiplicity']) + '\n')
+            for at, xyz in zip(self.atoms, self.xyz):
+                line = '{0:5s} {1:10.3f} {2:10.3f} {3:10.3f}\n'.format(at, xyz[0], xyz[1], xyz[2])
+                f.write(line)
+            f.write(' ')
+            f.close()
+
+        elif software == 'fhiaims':
+
+            control_file = outdir + '/control.in'
+            geom_file    = outdir + '/geometry.in'
+            
+            c = open(control_file, 'w')
+            c.write('xc ' + str(theory['xc']) + '\n')
+            c.write(theory['disp'] + '\n')
+            c.write('charge ' + str(theory['charge']) + '\n')
+            c.write(theory['jobtype']+'\n')
+            c.write(theory['convergence_options'] + '\n')
+            c.write('density_update_method ' + theory['density_update_method'] + '\n')
+            c.write('check_cpu_consistency ' + theory['check_cpu_consistency'] + '\n')
+            diff_atoms = set(self.atoms)
+            
+            for at in diff_atoms:
+                EN="{0:02d}".format(element_number(at))
+                with open('/share/apps/fhi-aims.210226/species_defaults/'+theory['basis_set'] + '/' + EN + '_' +at+'_default','r') as light: 
+                    for line in light.readlines():
+                        c.write(line)
+            c.close()
+
+            g = open(geom_file, 'w')
+            for at, xyz in zip(self.atoms, self.xyz):                                           
+                line = 'atom      {0:10.3f} {1:10.3f} {2:10.3f} {3:3s}\n'.format( xyz[0], xyz[1], xyz[2], at)
+                g.write(line)
+            g.close()
+
+    def run_qm(self, theory, software='g16'):
         """ Opens and runs a simulation in the Gaussian application. To run this function GausView must already be intalled on the device
 
         :param mpi: (bool) message passing interface, set true to use parallel programming. experimental.
@@ -108,20 +138,22 @@ class Conformer():
         except:
             print("Create input first")
             sys.exit(1)
-
+            
         cwd=os.getcwd(); os.chdir(self.outdir)
-
-        with open('input.log', 'w') as out:
-
-            if mpi == True: 
-                gauss_job = Popen("mpiexec -n " + str(theory['nprocs']) + "g16 input.com ", shell=True, stdout=out, stderr=out)
-            elif mpi == False: 
+        if software == 'g16':
+            with open('input.log', 'w') as out:
                 gauss_job = Popen("g16 input.com ", shell=True, stdout=out, stderr=out)
+                gauss_job.wait()
+            os.chdir(cwd)
+            return gauss_job.returncode
 
-            gauss_job.wait()
+        elif software == 'fhiaims':
+            with open('aims.log', 'w') as out: 
+                fhi_job = Popen("mpiexec -np " + str(theory['nprocs']) + '  ' + str(theory['exec']), shell=True, stdout=out, stderr=out)
+                fhi_job.wait()
 
-        os.chdir(cwd)
-        return gauss_job.returncode
+            os.chdir(cwd)
+            return fhi_job.returncode
 
     def calculate_ccs(self, temp_dir, method = 'pa', accuracy = 1):
         """ Calls program sigma to calculate collision cross section, the sigma must be in the PATH variable. Need to change hardcoded paths otherwise it won't work
@@ -264,6 +296,34 @@ class Conformer():
             self.Ints = np.array( ints )
             self.Vibs=np.zeros((self.NVibs, self.NAtoms, 3))
             for i in range(self.NVibs): self.Vibs[i,:,:] = vibs[i]
+
+        self.xyz = np.array(geom)
+        self.atoms = atoms
+
+
+    def load_aims(self, file_path):
+
+        geom = [] ; atoms = []
+
+        read_geom = False
+        self.NAtoms = None
+        self._id    = file_path.split('/')[-2]
+        self.path   = '/'.join(file_path.split('/')[:-1])
+
+        for line in open(file_path, 'r').readlines():
+
+            if  "Number of atoms" in  line: 
+                self.NAtoms = int(line.split()[5])
+
+            #Final energy:
+            if " | Total energy of the DFT" in line: 
+                self.E = float(line.split()[11])/27.211384500 #eV to Ha
+            #Reading final geom:
+            if " Final atomic structure:" in line: read_geom = True
+            if read_geom == True and "atom " in line:
+                geom.append([ float(x) for x in line.split()[1:4] ])
+                atoms.append(line.split()[-1])
+            if read_geom == True and "--------" in line: read_geom = False
 
         self.xyz = np.array(geom)
         self.atoms = atoms
