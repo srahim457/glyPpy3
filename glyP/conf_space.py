@@ -23,14 +23,14 @@ class Space(list):
     _kT=0.0019872036*_temp #boltzmann
     _Ha2kcal=627.5095  
 
-    def __init__(self, path, load=True):
+    def __init__(self, path, load=True, software='g16'):
 
         self.path = path
         try: os.makedirs(self.path)
         except: 
             if load == True: 
                 print("{0:10s} directory already exists, load existing data".format(path))
-                self.load_dir(path, None)
+                self.load_dir(path, None, software)
 
     def __str__(self):
          
@@ -72,7 +72,7 @@ class Space(list):
 
         return self.__getitem(slice(i,j))
 
-    def load_dir(self, path, topol=None):
+    def load_dir(self, path, topol=None, software='g16'):
         """Loads a directory with data files to be processed. The path is just the name of the directory, the function will handle the presence of multiple directories within it.
 
         :param path: (string) this is the path to the directory with all the conformer data. This directory should be filled with other directories with the intended name of the conformer and it's .xyz and input.log files
@@ -88,7 +88,7 @@ class Space(list):
                     for filename in ifiles[2]:
                         if filename.endswith('.log'):
                             for line in open('/'.join([path, dirname, filename]), 'r').readlines()[-10:]:
-                                if re.search('Normal',  line):
+                                if software == 'g16' and  re.search('Normal',  line):
                                     conf = Conformer(topol, self.path)
                                     conf.load_log(path+'/'+dirname+'/'+filename)
                                     conf.connectivity_matrix(distXX=1.65, distXH=1.25)
@@ -97,6 +97,18 @@ class Space(list):
                                         self.append(conf)
                                     else: 
                                         del conf
+
+                                elif software == 'fhiaims' and re.search('Have a nice day.', line):
+
+                                    conf = Conformer(topol, self.path)
+                                    conf.load_aims(path+'/'+dirname+'/'+filename)
+                                    conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+                                    if conf.Nmols == 1:
+                                        conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
+                                        self.append(conf)
+                                    else: 
+                                        del conf
+
 
     def load_exp(self, path, ir_resolution=1.0):
         """Selects the experimental conformer that other conformers will be compared to. Creates/updates the self.expIR member of this class
@@ -157,10 +169,11 @@ class Space(list):
 
 
 
-    def set_theory(self, **kwargs):
+    def set_theory(self, software='g16', **kwargs):
         """Parameters for simulations
         """
-        self.theory = { 'method': 'PBE1PBE', 
+        if software == 'g16':
+            self.theory = { 'method': 'PBE1PBE', 
                         'basis_set':'6-31+G(d,p)', 
                         'jobtype':'opt freq', 
                         'disp': True, 
@@ -171,8 +184,26 @@ class Space(list):
                         'mem':'64GB'
                         }
 
+        elif software == 'fhiaims':
+
+            self.theory = { 
+                        'exec': '/share/apps/fhi-aims.210226/aims.210226.scalapack.mpi.x', 
+                        'xc': 'pbe',
+                        'basis_set':'light', 
+                        'jobtype':"relax_geometry  trm 5E-3\n sc_accuracy_forces  5E-4\n output_level MD_light",
+                        'disp': 'vdw_correction_hirshfeld', 
+                        'convergence_options':
+                                        "sc_accuracy_rho  1E-4\n sc_accuracy_eev  1E-3\n sc_accuracy_etot 1E-6\n sc_iter_limit    999", 
+                        'charge': '0.0', 
+                        'density_update_method': "orbital", 
+                        'nprocs': 24, 
+                        'check_cpu_consistency': ".false."
+                        }
+
         for key in kwargs: 
             self.theory[key] = kwargs[key]
+
+
 
     def sort_energy(self, energy_function='E'):
         """Sorted the conformers according to selected energy_function
