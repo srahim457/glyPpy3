@@ -167,6 +167,49 @@ class Space(list):
                     
 #if np.array_equal(conf.conn_mat, m.conn_mat) and conf_links == m_links : conf.topol = m.topol
 
+    def load_Fmaps(self, path):
+
+        """Loads a set of free energy maps for the glycosidic linkages located in path
+           The directory name that contains eps file with the map should be the linkage.
+        """
+
+        def load_linkage(linkage_path):
+           
+            f = open(linkage_path, 'r') 
+            pattern = None ; matrix_lett = []; matrix_dict = {}
+
+            for line in f.readlines():
+
+                if re.search(r'(\d\s\d\b)', line): 
+                    grid = int(line.split()[1])
+                    pattern = grid * '[A-Z]'
+
+                if pattern and re.search(pattern, line):
+                    replL1 = line.replace('",','')
+                    replL2 = line.replace('"','')
+                    matrix_lett.append( '\n'.join(replL2.split()))
+
+                if re.search('((".*")[0-9])', line): 
+                    replL1 = line.replace('"', ' ') 
+                    letters, energy = values = str(replL1.split()[0]) , float(replL1.split()[4])
+                    matrix_dict.update(dict.fromkeys(letters,energy))
+
+            matrix = np.zeros( [grid, grid ] )
+            for i in range(grid):
+                for j in range(grid):
+                    matrix[i,j] = np.exp(-matrix_dict[matrix_lett[i][j]]/self._kT)
+            matrix = matrix/np.sum(matrix)
+            #print(np.sum(matrix))
+            return matrix
+
+        self.linkages = {}
+
+        for (root, dirs, files) in os.walk('./'+path):
+            for dirname in dirs:
+                for ifiles in os.walk(path+'/'+dirname):
+                    for filename in ifiles[2]:
+                        if filename.endswith('.xpm'):
+                            self.linkages[dirname] = load_linkage('/'.join([path, dirname, filename]))
 
 
     def set_theory(self, software='g16', **kwargs):
