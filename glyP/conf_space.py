@@ -104,7 +104,7 @@ class Space(list):
                                 elif software == 'fhiaims' and re.search('Have a nice day.', line):
 
                                     conf = Conformer(topol, '/'.join([path, dirname]))
-                                    conf.load_log('/'.join([path, +dirname]), software="fhiaims")
+                                    conf.load_log(software="fhiaims")
                                     conf.connectivity_matrix(distXX=1.65, distXH=1.25)
 
                                     if conf.Nmols == 1:

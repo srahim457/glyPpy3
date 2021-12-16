@@ -12,7 +12,7 @@ GAsettings = {
             "pucker_P_model": [0.5, 0.20, 0.20, 0.05, 0.05],
             "rmsd_cutoff"   : 0.1,
             "output"        : "GAout.log",
-            "software"      : "g16"
+            "software"      : "fhiaims"
             }
 
 dtime = glyP.utilities.dtime
