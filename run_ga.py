@@ -1,12 +1,8 @@
 import glyP
 import copy, sys
 
-def run_ga():
-    """A genetic algorithm script that implements functions of the glyP package.
-    """
 
-    #parameters for the algorithm
-    GAsettings = {
+GAsettings = {
             "initial_pool"  : 10,
             "alive_pool"    : 10,
             "generations"   : 60,
@@ -15,10 +11,40 @@ def run_ga():
             "prob_ring_mut" : 0.33,
             "pucker_P_model": [0.5, 0.20, 0.20, 0.05, 0.05],
             "rmsd_cutoff"   : 0.1,
+            "output"        : "GAout.log"
+            "software"      : "g16"
             }
 
+def  spawn_initial(GArun, n):
 
-    output = "GAout.log"
+    m = glyP.utilities.draw_random_int(len(GArun.models))
+    GArun.append(copy.deepcopy(GArun.models[m]))
+    offspring = GArun[-1] ;  offspring._id = "initial-{0:02d}".format(n)
+    print("Generate initial-{0:02d} form {1:20s}  Date: {2:30s}".format(n, GArun.models[m]._id, GAdtime()))
+
+def spawn_offspring(GArun, n, IP=GAsettings['initial_pool']):
+
+    m = glyP.utilities.draw_random_int(GAsettings['alive_pool'])
+    GArun.append(copy.deepcopy(GArun[m]))
+    offspring = GArun[-1]
+    offspring._id = "offspring-{0:02d}".format(n-IP)
+    print("Generate offspring-{0:02d} from {1:20s} Date: {2:30s}".format(n-IP, GArun[m]._id, dtime()))
+
+def remove_duplicates(GArun):
+
+    
+    for i in range(len(GArun)):
+        rmsd = glyP.utilities.calculate_rmsd(GArun[-1], GArun[i])
+            if rmsd < GAsettings['rmsd_cutoff']:
+                print("RMSD: {0:6.3f} already exist as {1:20s}".format(rmsd, GArun[i]._id))
+                return True 
+    return False
+
+def run_ga():
+    """A genetic algorithm script that implements functions of the glyP package.
+    """
+
+    output = GAsettings["output"]
     with open(output, 'w') as out: 
 
         #sys.stdout = out 
@@ -28,7 +54,7 @@ def run_ga():
 
         #Generation
         #Creates a conformer space and fills it with models of conformers. Models are theoretically generated conformers saved as files in a different directory
-        GArun = glyP.Space('GA-test', software='g16')
+        GArun = glyP.Space('GA-test', software=GAsettings["software"])
         GArun.load_models('models_tri')
         GArun.load_Fmaps('Fmaps')
 
@@ -53,24 +79,8 @@ def run_ga():
             succ_job = 1
             while succ_job: 
 
-                if populate == True:
-
-                    #generate new conformers with existing topol, in order to have num of conformers == size of initial pool 
-
-                    m = glyP.utilities.draw_random_int(len(GArun.models))
-                    print("Generate initial-{0:02d} form {1:20s}  Date: {2:30s}".format(n, GArun.models[m]._id, GAdtime()))
-                    GArun.append(copy.deepcopy(GArun.models[m]))
-                    offspring = GArun[-1]
-                    offspring._id = "initial-{0:02d}".format(n)
-                    #deepcopy of random conformer in the list
-
-                elif evolve == True:
-
-                     m = glyP.utilities.draw_random_int(GAsettings['alive_pool'])
-                     print("Generate offspring-{0:02d} from {1:20s} Date: {2:30s}".format(n-IP, GArun[m]._id, dtime()))
-                     GArun.append(copy.deepcopy(GArun[m]))
-                     offspring = GArun[-1]
-                     offspring._id = "offspring-{0:02d}".format(n-IP)
+                if    populate == True: spawn_initial(GArun, n)
+                elif  evolve   == True: spawn_offspring(GArun,n)
 
                 clash = True ; new_parent = False ; attempt = 0 
                 xyz_backup = copy.copy(offspring.xyz)
@@ -116,20 +126,13 @@ def run_ga():
 
                 #print("Attempt {0:3d} successful".format(attempt), end='\n')
                 offspring.measure_c6(); offspring.measure_glycosidic() ; offspring.measure_ring()
-                offspring.update_vector()
 
-                offspring.create_input(GArun.theory, GArun.path, software='g16')
-                succ_job = offspring.run_qm(GArun.theory, software='g16') #with a proper execution of gaussian
-
+                offspring.create_input(GArun.theory, GArun.path, software=GAsettings["software"])
+                succ_job = offspring.run_qm(GArun.theory, software=GAsettings["software"]) #with a proper execution of gaussian
 
             offspring.load_log('/'.join([GArun.path, offspring._id, 'input.log']))
             offspring.measure_c6() ; offspring.measure_glycosidic() ; offspring.measure_ring()
             offspring.update_topol(GArun.models)
-            offspring.update_vector()
-            if populate == True: print("Finished initial-{0:02d} Date: {1:30s}".format(n, dtime()))
-            else:                print("Finished offspring-{0:02d} Date: {1:30s}".format(n-IP, dtime()))
-
-            print(offspring)
 
             #sometimes in calculation a mol will break into 2 molecules (ex torsion), this checks if the current molecule disociates into 2 fragments. If so it is removed.
             if offspring.Nmols > 1: 
@@ -138,14 +141,13 @@ def run_ga():
 
             #checks for copies
             if n > 0: 
-                duplicate = False
-                for i in range(n):
-                    rmsd = glyP.utilities.calculate_rmsd(offspring, GArun[i])
-                    if rmsd < GAsettings['rmsd_cutoff']:
-                        print("RMSD: {0:6.3f} already exist as {1:20s}".format(rmsd, GArun[i]._id))
-                        duplicate = True ; break
-                if duplicate == True: 
-                     del offspring ; del GArun[-1] ; continue 
+                if check_duplicates(GArun): 
+                    del GArun[-1] ; continue 
+
+
+            if populate == True: print("Finished initial-{0:02d} Date: {1:30s}".format(n, dtime()))
+            else:                print("Finished offspring-{0:02d} Date: {1:30s}".format(n-IP, dtime()))
+            print(offspring)
 
             GArun.sort_energy(energy_function='E')
             GArun.reference_to_zero(energy_function='E')
