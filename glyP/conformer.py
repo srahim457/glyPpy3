@@ -32,7 +32,7 @@ class Conformer():
     set proper flags, to be fixed for only freq calcs) and creates an object
     """
 
-    def __init__(self, topol, output_path):
+    def __init__(self, topol, path):
         """Construct a conformer object
 
         :param topol: 
@@ -40,19 +40,18 @@ class Conformer():
         """
         self._id = topol
         self.topol = topol
-        self.output_path = output_path
+        self.path  = path
 
-    def load_model(self, file_path):
-        """Loads a file and constructs a conformer
+    def load_model(self):
+        """Loads a xyz and constructs a confromer (model) that has only topol (name of the directory), xyz coordinates and atoms.
 
-        :param file_path: (string) this is the directory of the data file being used to condtruct a conformer object
         """
         self.NAtoms = None
-        self._id    = str(file_path).split('/')[-2]
+        self._id    = self.path.split('/')[-1]
         self.topol = self._id
         geom = [] ; atoms = []
 
-        for n, line in enumerate(open(file_path, 'r').readlines()):
+        for n, line in enumerate(open('/'.join([self.path, "geometry.xyz"]), 'r').readlines()):
 
             if n == 0 and self.NAtoms == None: self.NAtoms = int(line)
             if n > 1:
@@ -164,13 +163,13 @@ class Conformer():
         """   
         #make a temp dir to store dat files
         #need to make a specialized .xyz file for sigma
+
         with open( temp_dir + '/sig.xyz','w') as ccs:
             ccs.write("{0:3d}\n".format(self.NAtoms))
             for at, xyz in zip(self.atoms, self.xyz):
                 ccs.write("{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] ))
             ccs.close()
         if method == 'pa':
-            #rewrite with pipe? 
             #requires a parameter file, needs to be a path variable !!!
             ccs_job = Popen("sigma -f xyz -i " + str(temp_dir + '/sig.xyz') +' -n ' +  str(accuracy) + " -p /home/matma/bin/sigma-parameters.dat", shell=True, stdout=PIPE, stderr=PIPE)
             #out, err = ccs_job.communicate()
@@ -178,10 +177,9 @@ class Conformer():
                 #print (line)
                 if re.search('Average PA', line.decode('utf-8')): self.ccs  = float(line.decode('utf-8').split()[4])
 
-    def load_log(self, file_path, software="g16"):
+    def load_log(self, software="g16"):
 
-        """ Creates a conformer object using infromation from a file given the file path
-        :param file_path: (string) path to file
+        """ Creates a conformer object using infromation from the self.path attribute
         """
         # why did this try function get commented out?
         #try:
@@ -203,10 +201,9 @@ class Conformer():
             job_opt = False ; job_freq = False ; job_optfreq = False ; job_sp = False ; job = 0
     
             self.NAtoms = None
-            self._id    = file_path.split('/')[-2]
-            self.path   = '/'.join(file_path.split('/')[:-1])
+            self._id    = self.path.split('/')[-1]
     
-            for line in open(file_path, 'r').readlines():
+            for line in open("/".join([self.path, "input.log"]), 'r').readlines():
     
                     if re.search('^ #', line) and job == 0:
                         if "opt" in line:
@@ -309,10 +306,9 @@ class Conformer():
     
             read_geom = False
             self.NAtoms = None
-            self._id    = file_path.split('/')[-2]
-            self.path   = '/'.join(file_path.split('/')[:-1])
+            self._id    = self.path.split('/')[-1]
     
-            for line in open(file_path, 'r').readlines():
+            for line in open("/".join([self.path, "aims.log"]) , 'r').readlines():
     
                 if  "Number of atoms" in  line: 
                     self.NAtoms = int(line.split()[5])
@@ -661,54 +657,8 @@ class Conformer():
         xyzview.zoomTo()
         xyzview.show()
 
-    def plot_ir(self, xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None):
+    def plot_ir(self,  xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None, exp_int_split=False, normal_modes=False):
 
-        """ Plots the IR spectrum in xmin -- xmax range,
-        x-axis is multiplied by scaling factor, everything
-        is normalized to 1. If exp_data is specified, 
-        then the top panel is getting plotted too. 
-        Need to add output directory. Default name is self._id
-        """
-
-        import matplotlib.pyplot as plt
-        from matplotlib.ticker import NullFormatter
-
-        fig, ax = plt.subplots(1, figsize=(10, 3))
-
-        ax.tick_params(axis='both', which='both', bottom=True, top=False, labelbottom=True, right=False, left=False, labelleft=False)
-        ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False);  ax.spines['left'].set_visible(False)
-        ax.xaxis.set_tick_params(direction='out')
-        ax.yaxis.set_major_formatter(NullFormatter())
-        ax.set_ylim(0,2) ; ax.set_xlim(xmin, xmax)
-
-        xticks = np.linspace(xmin,xmax,int((xmax-xmin)/100)+1)
-        ax.set_xticks(xticks[:-1])
-        ax.set_xticklabels([int(x) for x in xticks[:-1]], fontsize=12)
-        for t in xticks:
-            ax.plot([t,t],[0,3], 'k--')
-
-        shift=1
-        incr = (self.IR[-1,0] - self.IR[0,0])/(len(self.IR)-1)
-
-        scale_t  =  1/np.amax(self.IR[int(xmin/incr):int(xmax/incr)+100,1])
-        Xsc = self.IR[:,0]* scaling_factor ; IRsc = self.IR[:,1]*scale_t
-
-        ir_theo = ax.plot(Xsc, -IRsc+shift, color='0.25', linewidth=2)
-        ax.fill_between(Xsc, np.linspace(shift, shift, len(IRsc)), -IRsc+1, color='0.5', alpha=0.5)
-        ax.plot([xmin,xmax], [shift, shift], 'k', lw=2)
-        for l in range(len(self.Freq)):
-             ax.plot([scaling_factor*self.Freq[l], scaling_factor*self.Freq[l]], [shift, -self.Ints[l]*scale_t+shift], linewidth=2, color='0.25')
-
-        if plot_exp == True:
-            scale_exp=  1/np.amax(exp_data[:,1]) 
-            ax.plot(exp_data[:,0], exp_data[:,1]*scale_exp+shift, color='r', alpha=0.5, linewidth=2)
-            ax.fill_between(exp_data[:,0], exp_data[:,1]*scale_exp+shift, np.linspace(shift,shift, len(exp_data[:,1])), color='r', alpha=0.5)
-
-        fig.tight_layout() 
-        plt.savefig(self._id+'.png', dpi=200)
-
-
-    def plot_ir2(self,  xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None, exp_int_split=False, normal_modes=False):
         """ Plots the IR spectrum in xmin -- xmax range,
         x-axis is multiplied by scaling factor, everything
         is normalized to 1. If exp_data is specified, 
@@ -772,8 +722,8 @@ class Conformer():
 
         fig.tight_layout()
         current_path = os.getcwd()
-        output_path = os.path.join(current_path, self.output_path+'/'+self._id+'.png')
-        print(output_path + self._id+'.png')
+        output_path =  os.path.join(current_path, self.path, self._id+'.png')
+        #print(output_path + self._id+'.png')
         plt.savefig(output_path, dpi=200)
         
     def rotation_operation(self,conf_name, conf_index, rotmat):

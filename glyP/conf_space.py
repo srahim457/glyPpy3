@@ -30,7 +30,7 @@ class Space(list):
         except: 
             if load == True: 
                 print("{0:10s} directory already exists, load existing data".format(path))
-                self.load_dir(path, None, software)
+                self.load_dir(path, topol=None, software=software)
 
     def __str__(self):
          
@@ -90,9 +90,11 @@ class Space(list):
                             for line in open('/'.join([path, dirname, filename]), 'r').readlines()[-10:]:
 
                                 if software == 'g16' and  re.search('Normal',  line):
-                                    conf = Conformer(topol, self.path)
-                                    conf.load_log(path+'/'+dirname+'/'+filename, software="g16")
+
+                                    conf = Conformer(topol, '/'.join([path, dirname]))
+                                    conf.load_log(software="g16")
                                     conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+
                                     if conf.Nmols == 1:
                                         conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
                                         self.append(conf)
@@ -101,9 +103,10 @@ class Space(list):
 
                                 elif software == 'fhiaims' and re.search('Have a nice day.', line):
 
-                                    conf = Conformer(topol, self.path)
-                                    conf.load_log(path+'/'+dirname+'/'+filename, software="fhiaims")
+                                    conf = Conformer(topol, '/'.join([path, dirname]))
+                                    conf.load_log('/'.join([path, +dirname]), software="fhiaims")
                                     conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+
                                     if conf.Nmols == 1:
                                         conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
                                         self.append(conf)
@@ -131,8 +134,8 @@ class Space(list):
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.xyz'):
-                            conf = Conformer(None, self.path)
-                            conf.load_model(path+'/'+dirname+'/'+filename)
+                            conf = Conformer(None, '/'.join([path, dirname]))
+                            conf.load_model()
                             self.models.append(conf)
         self.Nmodels = len(self.models)
 
@@ -144,13 +147,14 @@ class Space(list):
             conf.ring = [] ; conf.ring_angle = [] ; conf.dih_angle = []
             conf.connectivity_matrix(distXX=1.6, distXH=1.20)
             conf.assign_atoms() ; conf.measure_c6() ; conf.measure_ring() ; conf.measure_glycosidic()
-            if hasattr(self[0], 'graph'):
+            if hasattr(conf, 'graph'):
                 for e in conf.graph.edges:
                     edge = conf.graph.edges[e]
                     print("{0:1d}->{1:1d}: {2:6s}".format(e[0], e[1], edge['linker_type']), end='')
             print('')
 
-        if len(self) != 0: 
+        if len(self) != 0:
+
             for conf in self: 
                 conf.topol = 'unknown'
                 #the iteration of the graphs edges can lead to bug because the order of the list is unknown. For the conformers to have the same shape the list must have the same content in the same order.

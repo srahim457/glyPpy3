@@ -11,45 +11,45 @@ GAsettings = {
             "prob_ring_mut" : 0.33,
             "pucker_P_model": [0.5, 0.20, 0.20, 0.05, 0.05],
             "rmsd_cutoff"   : 0.1,
-            "output"        : "GAout.log"
+            "output"        : "GAout.log",
             "software"      : "g16"
             }
+
+dtime = glyP.utilities.dtime
 
 def  spawn_initial(GArun, n):
 
     m = glyP.utilities.draw_random_int(len(GArun.models))
     GArun.append(copy.deepcopy(GArun.models[m]))
-    offspring = GArun[-1] ;  offspring._id = "initial-{0:02d}".format(n)
-    print("Generate initial-{0:02d} form {1:20s}  Date: {2:30s}".format(n, GArun.models[m]._id, GAdtime()))
+    GArun[-1]._id = "initial-{0:02d}".format(n)
+    GArun[-1].path= '/'.join([GArun.path, GArun[-1]._id])
+    print("Generate initial-{0:02d} form {1:20s}  Date: {2:30s}".format(n, GArun.models[m]._id, dtime()))
 
 def spawn_offspring(GArun, n, IP=GAsettings['initial_pool']):
 
     m = glyP.utilities.draw_random_int(GAsettings['alive_pool'])
     GArun.append(copy.deepcopy(GArun[m]))
-    offspring = GArun[-1]
-    offspring._id = "offspring-{0:02d}".format(n-IP)
+    GArun[-1]._id = "offspring-{0:02d}".format(n-IP)
+    GArun[-1].path= '/'.join([GArun.path, GArun[-1]._id])
     print("Generate offspring-{0:02d} from {1:20s} Date: {2:30s}".format(n-IP, GArun[m]._id, dtime()))
 
 def remove_duplicates(GArun):
 
-    
-    for i in range(len(GArun)):
+    for i in range(len(GArun)-1):
         rmsd = glyP.utilities.calculate_rmsd(GArun[-1], GArun[i])
-            if rmsd < GAsettings['rmsd_cutoff']:
-                print("RMSD: {0:6.3f} already exist as {1:20s}".format(rmsd, GArun[i]._id))
-                return True 
+        if rmsd < GAsettings['rmsd_cutoff']:
+            print("RMSD: {0:6.3f} already exist as {1:20s}".format(rmsd, GArun[i]._id))
+            return True 
     return False
 
 def run_ga():
     """A genetic algorithm script that implements functions of the glyP package.
     """
-
     output = GAsettings["output"]
     with open(output, 'w') as out: 
 
         #sys.stdout = out 
         #sys.stderr = out
-        dtime = glyP.utilities.dtime
         print("Initialize:", dtime())
 
         #Generation
@@ -81,6 +81,8 @@ def run_ga():
 
                 if    populate == True: spawn_initial(GArun, n)
                 elif  evolve   == True: spawn_offspring(GArun,n)
+
+                offspring = GArun[-1]
 
                 clash = True ; new_parent = False ; attempt = 0 
                 xyz_backup = copy.copy(offspring.xyz)
@@ -130,7 +132,7 @@ def run_ga():
                 offspring.create_input(GArun.theory, GArun.path, software=GAsettings["software"])
                 succ_job = offspring.run_qm(GArun.theory, software=GAsettings["software"]) #with a proper execution of gaussian
 
-            offspring.load_log('/'.join([GArun.path, offspring._id, 'input.log']))
+            offspring.load_log(software=GAsettings["software"])
             offspring.measure_c6() ; offspring.measure_glycosidic() ; offspring.measure_ring()
             offspring.update_topol(GArun.models)
 
@@ -141,12 +143,11 @@ def run_ga():
 
             #checks for copies
             if n > 0: 
-                if check_duplicates(GArun): 
+                if remove_duplicates(GArun): 
                     del GArun[-1] ; continue 
 
-
-            if populate == True: print("Finished initial-{0:02d} Date: {1:30s}".format(n, dtime()))
-            else:                print("Finished offspring-{0:02d} Date: {1:30s}".format(n-IP, dtime()))
+            if populate == True: print("Finished initial-{0:02d}{1:27s} Date: {2:30s}".format(n, '', dtime()))
+            else:                print("Finished offspring-{0:02d}{1:27s} Date: {2:30s}".format(n-IP, '', dtime()))
             print(offspring)
 
             GArun.sort_energy(energy_function='E')
