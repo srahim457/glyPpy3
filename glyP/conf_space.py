@@ -30,7 +30,7 @@ class Space(list):
         except: 
             if load == True: 
                 print("{0:10s} directory already exists, load existing data".format(path))
-                self.load_dir(path, None, software)
+                self.load_dir(path, topol=None, software=software)
 
     def __str__(self):
          
@@ -88,10 +88,13 @@ class Space(list):
                     for filename in ifiles[2]:
                         if filename.endswith('.log'):
                             for line in open('/'.join([path, dirname, filename]), 'r').readlines()[-10:]:
+
                                 if software == 'g16' and  re.search('Normal',  line):
-                                    conf = Conformer(topol, self.path)
-                                    conf.load_log(path+'/'+dirname+'/'+filename)
+
+                                    conf = Conformer(topol, '/'.join([path, dirname]))
+                                    conf.load_log(software="g16")
                                     conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+
                                     if conf.Nmols == 1:
                                         conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
                                         self.append(conf)
@@ -100,9 +103,10 @@ class Space(list):
 
                                 elif software == 'fhiaims' and re.search('Have a nice day.', line):
 
-                                    conf = Conformer(topol, self.path)
-                                    conf.load_aims(path+'/'+dirname+'/'+filename)
+                                    conf = Conformer(topol, '/'.join([path, dirname]))
+                                    conf.load_log(software="fhiaims")
                                     conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+
                                     if conf.Nmols == 1:
                                         conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
                                         self.append(conf)
@@ -130,32 +134,39 @@ class Space(list):
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.xyz'):
-                            conf = Conformer(None, self.path)
-                            conf.load_model(path+'/'+dirname+'/'+filename)
+                            conf = Conformer(None, '/'.join([path, dirname]))
+                            conf.load_model()
                             self.models.append(conf)
         self.Nmodels = len(self.models)
 
-        print("Analyzing: ", end="")
+        print("Analyzing Models:", end="\n")
+
         for conf in self.models:
-            print("{0:>8s}".format(conf._id), end=",")
+
+            print("{0:10s}:   ".format(conf._id), end='')
             conf.ring = [] ; conf.ring_angle = [] ; conf.dih_angle = []
             conf.connectivity_matrix(distXX=1.6, distXH=1.20)
             conf.assign_atoms() ; conf.measure_c6() ; conf.measure_ring() ; conf.measure_glycosidic()
-        print('')
+            if hasattr(conf, 'graph'):
+                for e in conf.graph.edges:
+                    edge = conf.graph.edges[e]
+                    print("{0:1d}->{1:1d}: {2:6s}".format(e[0], e[1], edge['linker_type']), end='')
+            print('')
 
-        if len(self) != 0: 
+        if len(self) != 0:
+
             for conf in self: 
                 conf.topol = 'unknown'
                 #the iteration of the graphs edges can lead to bug because the order of the list is unknown. For the conformers to have the same shape the list must have the same content in the same order.
-                conf_links = [ conf.graph.edges[e]['linker_type'] for e in conf.graph.edges]
+                conf_links =  [ conf.graph.edges[e]['linker_type'] for e in conf.graph.edges]
                 for m in self.models:
                     m_links = [ m.graph.edges[e]['linker_type'] for e in m.graph.edges ]
                     mat = conf.conn_mat - m.conn_mat
-                    if not np.any(mat) and conf_links == m_links :
+                    if not np.any(mat) and conf_links == m_links and m.anomer == conf.anomer :
                         conf.topol = m.topol
                         break
                         #return 0
-                    elif conf_links == m_links: 
+                    elif conf_links == m_links and m.anomer == conf.anomer: 
                         atc = 0 
                         acm = np.argwhere(np.abs(mat) == 1)
                         for at in acm:
@@ -167,6 +178,49 @@ class Space(list):
                     
 #if np.array_equal(conf.conn_mat, m.conn_mat) and conf_links == m_links : conf.topol = m.topol
 
+    def load_Fmaps(self, path):
+
+        """Loads a set of free energy maps for the glycosidic linkages located in path
+           The directory name that contains eps file with the map should be the linkage.
+        """
+
+        def load_linkage(linkage_path):
+           
+            f = open(linkage_path, 'r') 
+            pattern = None ; matrix_lett = []; matrix_dict = {}
+
+            for line in f.readlines():
+
+                if re.search(r'(\d\s\d\b)', line): 
+                    grid = int(line.split()[1])
+                    pattern = grid * '[A-Z]'
+
+                if pattern and re.search(pattern, line):
+                    replL1 = line.replace('",','')
+                    replL2 = line.replace('"','')
+                    matrix_lett.append( '\n'.join(replL2.split()))
+
+                if re.search('((".*")[0-9])', line): 
+                    replL1 = line.replace('"', ' ') 
+                    letters, energy = values = str(replL1.split()[0]) , float(replL1.split()[4])
+                    matrix_dict.update(dict.fromkeys(letters,energy))
+
+            matrix = np.zeros( [grid, grid ] )
+            for i in range(grid):
+                for j in range(grid):
+                    matrix[i,j] = np.exp(-matrix_dict[matrix_lett[i][j]]/self._kT)
+            matrix = matrix/np.sum(matrix)
+            #print(np.sum(matrix))
+            return matrix
+
+        self.linkages = {}
+
+        for (root, dirs, files) in os.walk('./'+path):
+            for dirname in dirs:
+                for ifiles in os.walk(path+'/'+dirname):
+                    for filename in ifiles[2]:
+                        if filename.endswith('.xpm'):
+                            self.linkages[dirname] = load_linkage('/'.join([path, dirname, filename]))
 
 
     def set_theory(self, software='g16', **kwargs):

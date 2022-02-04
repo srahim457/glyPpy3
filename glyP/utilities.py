@@ -291,9 +291,14 @@ def set_dihedral(conf, list_of_atoms, new_dih, incr = False,  axis_pos = "bond",
   #    print("current dihedral:",old_dih,"increm dihedral:",new_dih)
   #else: 
   #    print("current dihedral:",old_dih,"target dihedral:",new_dih)
+  try: 
+      norm_axor = np.sqrt(np.sum(axor**2))
+      normalized_axor = axor/norm_axor
 
-  norm_axor = np.sqrt(np.sum(axor**2))
-  normalized_axor = axor/norm_axor
+  except RuntimeWarning: 
+      print(axor, norm_axor, normalized_axor)
+      print(at1, at2, at3, at4)
+      print(axis_pos, incr)
 
   if incr == True: new_dih = old_dih + new_dih 
 
@@ -363,7 +368,7 @@ def ring_pucker_dict(pucker):
   '3H4' : [ -17.83, -42.16,   9.07],  '4H3': [  17.83,  42.16,  -9.07],
   '4H5' : [  -9.07,  42.16,  17.83],  '5H4': [   9.07, -42.16, -17.83],
   '5H6' : [   9.07, -17.83, -42.16],  '6H5': [  -9.07,  17.83,  42.16],
-  '6H1' : [  17.83,  -9.07,  42.16],  '1H6': [ -17.83,   9.07,  -2.16],
+  '6H1' : [  17.83,  -9.07,  42.16],  '1H6': [ -17.83,   9.07, -42.16],
   '1S3' : [   0.00,  50.84, -50.84],  '3S1': [   0.00, -50.84,  50.84],
   '5S1' : [  50.84, -50.84,   0.00],  '1S5': [ -50.84,  50.84,   0.00],
   '6S2' : [ -50.84,   0.00,  50.84],  '2S6': [  50.84,   0.00, -50.84],
@@ -405,6 +410,9 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
   else:
     error("neither existing topology nor list of 3 dihedral angles are provided")
   ra = conf.graph.nodes[ring_number]['ring_atoms']
+
+  xyz_backup = copy.copy(conf.xyz)
+
   #print("ring atoms:",ra)
     
   #break the ring bonds
@@ -515,6 +523,12 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
       if abs(differ) < 0.1 or abs(differ) > 359.9 : continue
       set_dihedral(conf, dih_atoms2[n], differ, incr = True, axis_pos="term")
 
+<<<<<<< HEAD
+=======
+  # Reconnect:
+  for i in range(len(ring_order)-1):
+      connect_atoms(conf, ra[ring_order[i]],  ra[ring_order[i+1]])
+>>>>>>> dd92e749953dfe6e6d821a041c15d60abe1b20ad
 
 def calculate_rmsd(conf1, conf2, atoms=None): 
   """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
