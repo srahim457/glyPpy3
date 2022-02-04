@@ -70,6 +70,7 @@ class Conformer():
 
         :param theory: (dict) a dictionary with the simulation parameters
         :param output: (string) this is the name of the output directory to be created
+        :param software: (string) g16 or fhiaims
         """
         outdir = '/'.join([output, self._id])
         self.outdir = outdir
@@ -636,7 +637,7 @@ class Conformer():
 
     def save_xyz(self, output="geom.xyz" ):
 
-        xyz_file=output
+        xyz_file=self.outdir+"/"+output
         f = open(xyz_file, 'w')
         f.write('{0:3d}\n'.format(self.NAtoms))
         f.write('xyz test file\n')
@@ -658,6 +659,7 @@ class Conformer():
         xyzview.setStyle({'stick':{}})
         xyzview.zoomTo()
         xyzview.show()
+        print(XYZ)
 
     def plot_ir(self, xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None):
 

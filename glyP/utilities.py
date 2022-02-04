@@ -363,7 +363,7 @@ def ring_pucker_dict(pucker):
   '3H4' : [ -17.83, -42.16,   9.07],  '4H3': [  17.83,  42.16,  -9.07],
   '4H5' : [  -9.07,  42.16,  17.83],  '5H4': [   9.07, -42.16, -17.83],
   '5H6' : [   9.07, -17.83, -42.16],  '6H5': [  -9.07,  17.83,  42.16],
-  '6H1' : [  17.83,  -9.07,  42.16],  '1H6': [ -17.83,   9.07,  -2.16],
+  '6H1' : [  17.83,  -9.07,  42.16],  '1H6': [ -17.83,   9.07,  -42.16],
   '1S3' : [   0.00,  50.84, -50.84],  '3S1': [   0.00, -50.84,  50.84],
   '5S1' : [  50.84, -50.84,   0.00],  '1S5': [ -50.84,  50.84,   0.00],
   '6S2' : [ -50.84,   0.00,  50.84],  '2S6': [  50.84,   0.00, -50.84],
@@ -379,6 +379,109 @@ def ring_pucker_dict(pucker):
     return topol_table[pucker]
   else:
     error("the provided topology is not in the table\n")
+
+def order_layer(layer):
+  ord_layer=[]
+  ord_layer.append(layer[0][1])
+  del layer[:1]
+  for i,k in zip(layer[0::2], layer[1::2]):
+    temp = [i[1],k[1]]
+    temp.sort(key=lambda n:n[0])
+    midpoint = len(ord_layer)//2+1
+    ord_layer.insert(midpoint, temp[1])
+    ord_layer.insert(midpoint, temp[0])
+  midpoint = len(ord_layer)//2+1
+  ord_layer.insert(midpoint,layer[-1][1])
+  return ord_layer  
+
+def pucker_scan(detail):
+  canon = ('1C4',  '4C1', '1,4B', 'B1,4', '2,5B', 'B2,5','3,6B', 'B3,6', '1H2',  '2H1',
+    '2H3',  '3H2','3H4',  '4H3','4H5',  '5H4','5H6',  '6H5','6H1' ,  '1H6','1S3' ,  '3S1','5S1' ,  '1S5',
+    '6S2' ,  '2S6','1E'  ,  'E1' ,'2E'  ,  'E2' ,'3E'  ,  'E3' ,'4E'  ,  'E4' ,'5E'  ,  'E5' , '6E'  ,  'E6' )
+
+  top = ring_pucker_dict('1C4') #top represent the actual cooridnates of the positive pole
+  bot = ring_pucker_dict('4C1') #bot (bottom) represents the coordinates of the negative pole
+
+  #order in order of distance from the positive pole
+  positive = []
+  #skip the first two entries because they are poles
+  for i in canon[2:]:
+    xyz=ring_pucker_dict(i)
+    d=get_distance(top,xyz)
+    entry = (d,xyz)
+    positive.append(entry)
+  positive.sort(key= lambda i: i[0])
+  L1 = positive[:12]
+  del positive[:12]
+  negative = []
+  for i in positive:
+    d=get_distance(bot,i[1])
+    entry = (d,i[1])
+    negative.append(entry)
+  negative.sort(key= lambda i: i[0])
+  L3 = negative[:12]
+  del negative[:12]
+  L2 = negative
+
+  #sort the levels in terms of the z axis
+  L1.sort(key=lambda i: i[1][2])
+  L2.sort(key=lambda i: i[1][2])
+  L3.sort(key=lambda i: i[1][2])
+  #this orders the levels a counter clockwise direction
+  L1=order_layer(L1)
+  L2=order_layer(L2)
+  L3=order_layer(L3)
+
+  #Slice scan
+  detail_dict = {'high':[4,5],'medium':[3,4],'low':[2,2]}
+  polar = detail_dict[detail][0]
+  tropical = detail_dict[detail][1]
+  slist=[]
+  for i in range(len(L1)):
+    #positive pole to L1, we don't want to include the point on L1 to avoid duplicates with the next segment
+    p_L1=np.linspace(start=top, stop=L1[i], num=polar, endpoint=False)
+    #Layer 1 to Layer 2
+    L1_L2=np.linspace(start=L1[i], stop=L2[i], num=tropical,endpoint=False)
+    #Layer 2 to Layer 3
+    L2_L3=np.linspace(start=L2[i], stop=L3[i], num=tropical,endpoint=False)
+    #L3 to negative pole, we do want to include the endpoint to get the pole 
+    L3_p=np.linspace(start=L3[i], stop=bot, num=(polar+1))
+    temp=np.concatenate((p_L1,L1_L2,L2_L3,L3_p))
+    slist.append(temp)
+
+  #Layer scan
+  pt_dict = {'high':[1,1,2,3,4,5,6,7,8],'medium':[1,1,2,2,3,3,4],'low':[1,2,2,3]}
+  layer_pts = pt_dict[detail]
+  #postive pole to layer1
+  L1_index = polar
+  L2_index = polar+tropical
+  L3_index = L2_index+tropical
+  temp=[]
+  for i,j in zip(slist[::],slist[1::]):
+    for pt in range(len(i[1:L2_index])):
+      top_half=np.linspace(start=i[1:L2_index][pt], stop=j[1:L2_index][pt], num=layer_pts[pt], endpoint=False)
+      for array in top_half:
+        temp.append(array)
+    #these 2 for loops need to be separated because sometimes the top range [1:L2] and the bottom range [L2:-1] are !=
+    #related to the number of slice points generated
+    for pt in range(len(i[L2_index:-1])):
+      bot_half=np.linspace(start=i[L2_index:-1][pt], stop=j[L2_index:-1][pt], num=layer_pts[-(pt+1)], endpoint=False)
+      for array in bot_half:
+        temp.append(array)
+  last = slist[-1]
+  first = slist[0]
+  for pt in range(len(last[1:L2_index])):
+    top_half=np.linspace(start=last[1:L2_index][pt], stop=first[1:L2_index][pt], num=layer_pts[pt], endpoint=False)
+    for array in top_half:
+      temp.append(array)
+  for pt in range(len(last[L2_index:-1])):
+    bot_half=np.linspace(start=last[L2_index:-1][pt], stop=first[L2_index:-1][pt], num=layer_pts[-(pt+1)], endpoint=False)
+    for array in bot_half:
+      temp.append(array)
+  temp.append(np.array(bot))
+  temp.append(np.array(top))
+  
+  return temp
 
 def set_ring_pucker(conf, ring_number,ring_pucker=None):
   """ Edits the ring pucker by assigning a new angle to the C2, C4 and O angles. This is based on the ring puckering model proposed in Puckering Coordinates of Monocyclic Rings by Triangular Decomposition Anthony D. Hill and Peter J. Reilly
@@ -399,7 +502,7 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
 
   #checks if it is a list with 3 numbers
 
-  elif type(ring_pucker) is list and len(ring_pucker) == 3:
+  elif (type(ring_pucker) is list or type(ring_pucker) is np.ndarray) and len(ring_pucker) == 3:
      new_theta  = ring_pucker
 
   else:
@@ -466,7 +569,6 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
       else: 
           op_atoms = [op_atoms_adj[0], ra[oa], op_atoms_adj[1]]
 
-      step = 0 
       for step in range(3): 
 
           #Calculate the deviation from pi/2:
@@ -494,6 +596,7 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
       rot_mat = expm(np.cross(np.eye(3), naxor*np.pi/2)) 
       norm_ep_perp = np.dot(rot_mat, norm_ep)
 
+
       # Now, calculate the angle between the rotate even plane and the group and calculate the matrix to adjust it to 180.0
       dot_product = np.dot(norm_ep_perp, norm_op) ; rot_angle =  np.pi - np.arccos(dot_product)
       axor = np.cross(norm_ep_perp, norm_op)
@@ -514,6 +617,10 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
 
       if abs(differ) < 0.1 or abs(differ) > 359.9 : continue
       set_dihedral(conf, dih_atoms2[n], differ, incr = True, axis_pos="term")
+
+  # Reconnect:
+  for i in range(len(ring_order)-1):
+      connect_atoms(conf, ra[ring_order[i]],  ra[ring_order[i+1]])
 
 
 def calculate_rmsd(conf1, conf2, atoms=None): 
