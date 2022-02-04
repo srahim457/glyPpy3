@@ -2,7 +2,7 @@ import math
 from . import calc_cp
 from . import rmsd
 import numpy as np
-import networkx 
+import networkx
 import sys, copy
 from scipy import interpolate
 from scipy.linalg import expm
@@ -12,7 +12,7 @@ from datetime import datetime
 def error(msg):
   """ write error message and quit
 
-  :param msg: (string) the message to be outputted 
+  :param msg: (string) the message to be outputted
   """
   sys.stderr.write(msg + "\n")
   sys.exit(3)
@@ -35,7 +35,7 @@ def get_distance(at1, at2):
 
 def clashcheck(conf, cutoff=1.2):
   """Checks if there is a clash between atoms
-  
+
   :param conf: passes a conformer object
   :param cutoff: (float) the maximum value that would not be considered a clashing distance, default to 1.0
   :return: (bool) True for a clash or False for no clash
@@ -49,17 +49,17 @@ def clashcheck(conf, cutoff=1.2):
           else: dist[at1,at2] = 10.0
 
   Dist = dist*Inv_cm
-  if np.amin(Dist) > cutoff: 
+  if np.amin(Dist) > cutoff:
       return False
-  else: 
+  else:
       return True
 
 def adjacent_atoms(conn_mat, at):
   """returns all adjacent atoms to a specific atom in a conformation
-  
+
   :param conn_mat: the connectivity matrix
   :param at: a selected atom
-  :return: all adjacent atoms to the selected atom 
+  :return: all adjacent atoms to the selected atom
   """
   return np.nonzero(conn_mat[at,:])[0]
 
@@ -82,13 +82,13 @@ def draw_random():
 
 def draw_random_int(top=1):
   """ draw a random int between 0-top
-  
+
   :param top: (int) the upperbound of the random int generator
   :return: (int) returns a random integer
   """
   return np.random.randint(top)
 
-def element_symbol(A): 
+def element_symbol(A):
   """ A dictionary for atomic number and atomic symbol
 
   :param A: either atomic number or atomic symbol for Hydrogen, Carbon, Nitrogen, Oxygen, Fluorine and Silicon
@@ -112,7 +112,7 @@ def calculate_ring(xyz, ring_atoms):
   sorted_atoms = []
   for i in 'O', 'C1', 'C2', 'C3', 'C4', 'C5': sorted_atoms.append(ring_atoms[i])
 
-  phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms) 
+  phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms)
   return phi, psi, R
 
 def determine_carried_atoms(at1, at2, conn_mat):
@@ -153,7 +153,7 @@ def calculate_normal_vector(conf, list_of_atoms):
   cross product of two vectors belonging to it.
 
   :param list_of_atoms: (list) of 3 atoms
-  :param conf: a conformer object 
+  :param conf: a conformer object
   :return cross_product: cross product of two matricies
   """
 
@@ -238,9 +238,9 @@ def set_angle(conf, list_of_atoms, new_ang):
 
   from scipy.linalg import expm
 
-  at1 = list_of_atoms[0] 
-  at2 = list_of_atoms[1] #midpoint 
-  at3 = list_of_atoms[2]  
+  at1 = list_of_atoms[0]
+  at2 = list_of_atoms[1] #midpoint
+  at3 = list_of_atoms[2]
   #xyz = copy.copy(conf.xyz)
   xyz = conf.xyz
 
@@ -260,7 +260,7 @@ def set_angle(conf, list_of_atoms, new_ang):
   rot_angle = np.pi*(new_ang - old_ang)/180.
   translation = xyz[at2, :]
 
-  #apply rotations to at3. 
+  #apply rotations to at3.
   rot = expm(np.cross(np.eye(3), normalized_axor*(rot_angle)))
   xyz[at3, :] = np.dot(rot, xyz[at3, :]-translation)
   xyz[at3, :] = xyz[at3, :]+translation
@@ -278,7 +278,7 @@ def set_dihedral(conf, list_of_atoms, new_dih, incr = False,  axis_pos = "bond",
   """
   #print("atoms of the planes:", list_of_atoms) #It's very poetic
   at1 = list_of_atoms[0]
-  at2 = list_of_atoms[1] #midpoint 
+  at2 = list_of_atoms[1] #midpoint
   at3 = list_of_atoms[2]
   at4 = list_of_atoms[3]
   #xyz = copy.copy(conf.xyz)
@@ -289,17 +289,22 @@ def set_dihedral(conf, list_of_atoms, new_dih, incr = False,  axis_pos = "bond",
 
   #if incr == True:
   #    print("current dihedral:",old_dih,"increm dihedral:",new_dih)
-  #else: 
+  #else:
   #    print("current dihedral:",old_dih,"target dihedral:",new_dih)
+  try:
+      norm_axor = np.sqrt(np.sum(axor**2))
+      normalized_axor = axor/norm_axor
 
-  norm_axor = np.sqrt(np.sum(axor**2))
-  normalized_axor = axor/norm_axor
+  except RuntimeWarning:
+      print(axor, norm_axor, normalized_axor)
+      print(at1, at2, at3, at4)
+      print(axis_pos, incr)
 
-  if incr == True: new_dih = old_dih + new_dih 
+  if incr == True: new_dih = old_dih + new_dih
 
   #(get it between -180. - 180.0
-  if   new_dih >=  180.0 : new_dih -= 360.0 
-  elif new_dih <= -180.0 : new_dih += 360.0 
+  if   new_dih >=  180.0 : new_dih -= 360.0
+  elif new_dih <= -180.0 : new_dih += 360.0
 
   #   Determine which atoms should be dragged along with the bond:
   #It's done later now.
@@ -314,14 +319,14 @@ def set_dihedral(conf, list_of_atoms, new_dih, incr = False,  axis_pos = "bond",
 
   #if old_dih >= 0.0:
   #print ("rotation:", old_dih, new_dih)
-  if abs(new_dih - old_dih) < threshold: return 
+  if abs(new_dih - old_dih) < threshold: return
 
   if old_dih >= 0.0 :
-      if ( 180.0 - threshold) < new_dih:  new_dih = 180.0 - threshold 
+      if ( 180.0 - threshold) < new_dih:  new_dih = 180.0 - threshold
       rot_angle = new_dih - old_dih
       rot_angle = np.pi*(rot_angle)/180.
   else:
-      if (-180.0 + threshold) > new_dih:  new_dih= -180.0 + threshold 
+      if (-180.0 + threshold) > new_dih:  new_dih= -180.0 + threshold
       rot_angle = new_dih - old_dih
       rot_angle = -np.pi*(rot_angle)/180.
 
@@ -355,7 +360,7 @@ def ring_pucker_dict(pucker):
   """ """
   topol_table = {
   '1C4' : [ -35.26, -35.26, -35.26],  '4C1': [  35.26,  35.26,  35.26],
-  '1,4B': [ -35.26,  74.20, -35.26], 'B1,4': [  35.26, -74.20,  35.26], 
+  '1,4B': [ -35.26,  74.20, -35.26], 'B1,4': [  35.26, -74.20,  35.26],
   '2,5B': [  74.20, -35.26, -35.26], 'B2,5': [ -74.20,  35.26,  35.26],
   '3,6B': [ -35.26, -35.26,  74.20], 'B3,6': [  35.26,  35.26, -74.20],
   '1H2' : [ -42.16,   9.07, -17.83],  '2H1': [  42.16,  -9.07,  17.83],
@@ -392,7 +397,7 @@ def order_layer(layer):
     ord_layer.insert(midpoint, temp[0])
   midpoint = len(ord_layer)//2+1
   ord_layer.insert(midpoint,layer[-1][1])
-  return ord_layer  
+  return ord_layer
 
 def pucker_scan(detail):
   canon = ('1C4',  '4C1', '1,4B', 'B1,4', '2,5B', 'B2,5','3,6B', 'B3,6', '1H2',  '2H1',
@@ -444,7 +449,7 @@ def pucker_scan(detail):
     L1_L2=np.linspace(start=L1[i], stop=L2[i], num=tropical,endpoint=False)
     #Layer 2 to Layer 3
     L2_L3=np.linspace(start=L2[i], stop=L3[i], num=tropical,endpoint=False)
-    #L3 to negative pole, we do want to include the endpoint to get the pole 
+    #L3 to negative pole, we do want to include the endpoint to get the pole
     L3_p=np.linspace(start=L3[i], stop=bot, num=(polar+1))
     temp=np.concatenate((p_L1,L1_L2,L2_L3,L3_p))
     slist.append(temp)
@@ -480,13 +485,13 @@ def pucker_scan(detail):
       temp.append(array)
   temp.append(np.array(bot))
   temp.append(np.array(top))
-  
+
   return temp
 
 def set_ring_pucker(conf, ring_number,ring_pucker=None):
   """ Edits the ring pucker by assigning a new angle to the C2, C4 and O angles. This is based on the ring puckering model proposed in Puckering Coordinates of Monocyclic Rings by Triangular Decomposition Anthony D. Hill and Peter J. Reilly
   :param conf: a conformer object
-  :param ring_number: (int) selects which ring of the conformer, an index to select the graph node 
+  :param ring_number: (int) selects which ring of the conformer, an index to select the graph node
   :param ring_pucker: (list) or (string) this is the ring puckering angles. Either a list with 3 numbers or a string that defines the intended topology which is looked up in the topol_dict
   """
 
@@ -508,13 +513,16 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
   else:
     error("neither existing topology nor list of 3 dihedral angles are provided")
   ra = conf.graph.nodes[ring_number]['ring_atoms']
+
+  xyz_backup = copy.copy(conf.xyz)
+
   #print("ring atoms:",ra)
-    
+
   #break the ring bonds
   #Flip, Twist, Tilt:
   #1. Move the even carbons according to the theta angles
   #2. Twist the odd carbons to be perpendical to the plane formed by even atoms
-  #3. Tilt the odd atoms to form the ring. 
+  #3. Tilt the odd atoms to form the ring.
 
   dih_atoms = [
          [ra['C5'],ra['C3'],ra['C1'],ra['C2']],
@@ -528,7 +536,7 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
   #at => any atom
   #rat => atom in a ring
 
-  #1. Flap: 
+  #1. Flap:
   #print("Step 1: Flap")
   adj_atoms = [] ; old_theta = []
   for rat in ['C1', 'C3', 'C5']:
@@ -536,7 +544,7 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
       for at in adj_atoms[-1]:
           disconnect_atoms(conf, ra[rat], at)
 
-  for rat1, rat2 in zip(['C1', 'C3', 'C5'], ['C2', 'C4', 'O']): 
+  for rat1, rat2 in zip(['C1', 'C3', 'C5'], ['C2', 'C4', 'O']):
       connect_atoms(conf, ra[rat1], ra[rat2])
 
   for n in range(3):
@@ -544,13 +552,13 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
       #print (old)
       if   old < 180.0 and old > 0.0      : old =  180.0 - old
       elif old > 180.0                    : old = -180.0 + old
-      elif old < 0.0   and old > -180.0   : old = -180.0 - old 
+      elif old < 0.0   and old > -180.0   : old = -180.0 - old
       old_theta.append(old)
       set_dihedral(conf, dih_atoms[n], 180.0-new_theta[n])
 
   for n, rat in enumerate(['C1', 'C3', 'C5']):
      for at in adj_atoms[n]:
-         connect_atoms(conf, ra[rat], at) 
+         connect_atoms(conf, ra[rat], at)
 
   #print("Step 2: Twist")
   ring_order = ['C1', 'C2', 'C3', 'C4', 'C5', 'O', 'C1']
@@ -563,25 +571,25 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
   for n, oa in enumerate(['C1', 'C3', 'C5']):
   #for n, oa in zip([1],['C3']):
 
-      op_atoms_adj = adjacent_atoms(conf.conn_mat, ra[oa]) ; 
+      op_atoms_adj = adjacent_atoms(conf.conn_mat, ra[oa]) ;
       if conf.atoms[adjacent_atoms(conf.conn_mat, ra[oa])[0]] == 'H':
           op_atoms = [op_atoms_adj[1], ra[oa], op_atoms_adj[0]]
-      else: 
+      else:
           op_atoms = [op_atoms_adj[0], ra[oa], op_atoms_adj[1]]
 
-      for step in range(3): 
+      for step in range(3):
 
           #Calculate the deviation from pi/2:
           plane_odd_vec = calculate_normal_vector(conf, op_atoms)
           norm_op = plane_odd_vec / np.sqrt(np.sum(plane_odd_vec**2))
-          dot_product = np.dot(norm_ep, norm_op) ; rot_angle =  np.pi/2 - np.arccos(dot_product) 
+          dot_product = np.dot(norm_ep, norm_op) ; rot_angle =  np.pi/2 - np.arccos(dot_product)
           #print(rot_angle, (rot_angle*180.0)/np.pi)
           #if rot_angle < 0.01 or step > 10 : break
-          axor = np.cross(norm_ep, norm_op) 
+          axor = np.cross(norm_ep, norm_op)
           rot = expm(np.cross(np.eye(3), axor*rot_angle)) ; translation = conf.xyz[op_atoms[1], :]
 
           #Determine which atoms should be dragged along with the bond:
-          carried_atoms = determine_carried_atoms(ra['O'], op_atoms[1], conf.conn_mat) #Bond with 'O' is zeroed anyway. 
+          carried_atoms = determine_carried_atoms(ra['O'], op_atoms[1], conf.conn_mat) #Bond with 'O' is zeroed anyway.
           carried_atoms.remove(op_atoms[1])
           #rotate the atoms:
           for at in carried_atoms:
@@ -590,10 +598,10 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
           #step += 1
 
       #1. Get the axis between the farthest atom in the even plane (C2, C4, O)  and the group that is being adjusted
-      #2. Use this axis to rotate the normal of the plane by 90.0 degrees. 
+      #2. Use this axis to rotate the normal of the plane by 90.0 degrees.
       axor = conf.xyz[op_atoms[1],:] - conf.xyz[dih_atoms2[n][0],:]
       naxor = axor / np.sqrt(np.sum(axor**2))
-      rot_mat = expm(np.cross(np.eye(3), naxor*np.pi/2)) 
+      rot_mat = expm(np.cross(np.eye(3), naxor*np.pi/2))
       norm_ep_perp = np.dot(rot_mat, norm_ep)
 
 
@@ -605,7 +613,7 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
       for at in carried_atoms:
           conf.xyz[at, :] = np.dot(rot, conf.xyz[at, :]-translation)
           conf.xyz[at, :] = conf.xyz[at, :]+translation
-          
+
   #3. Tilt:
   #print("Step 3: Tilt")
   for n, rat in zip([0,1,2],['C1', 'C3', 'C5']):
@@ -620,10 +628,10 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
 
   # Reconnect:
   for i in range(len(ring_order)-1):
-      connect_atoms(conf, ra[ring_order[i]],  ra[ring_order[i+1]])
+    connect_atoms(conf, ra[ring_order[i]],  ra[ring_order[i+1]])
 
 
-def calculate_rmsd(conf1, conf2, atoms=None): 
+def calculate_rmsd(conf1, conf2, atoms=None):
   """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
 
   :param conf1: a conformer object
@@ -657,7 +665,7 @@ def deriv(spec,h):
        :param spec: (list) an IR spectrum
        :param h: (float) the delta x between each data point, must be less than 1 for accurate integral results
        :return: the first derivative of the parameter spec
-  """ 
+  """
   der_spec =[[i[0],0] for i in spec]
 
   length=len(spec)
@@ -676,7 +684,7 @@ def get_range(tspec,espec,w_incr,shift,start,stop):
   and experimental spectrum is performed (depends on the shift)
 
   :param tspec: (list) theoretical spectrum
-  :param espec: (list) experimental spectrum 
+  :param espec: (list) experimental spectrum
   :param w_incr: (float) grid interval of the spectra -- should be 1 or smaller!
   :param shift: the shift on the spectrum
   :param start: (int) the starting point on the spectrum
@@ -696,13 +704,13 @@ def get_range(tspec,espec,w_incr,shift,start,stop):
   if (de2 <= 0 ):
     de2=int((stop+shift-espec[-1][0])/w_incr-0.00001)
     enstop=len(espec)+de2
-    tnstop=len(tspec)+int((stop-tspec[-1][0])/w_incr-0.00001) 
+    tnstop=len(tspec)+int((stop-tspec[-1][0])/w_incr-0.00001)
   else:
     de2=int((stop+shift-espec[-1][0])/w_incr+0.00001)
     enstop=len(espec)
     tnstop=len(tspec)+int((stop-tspec[-1][0])/w_incr-de2-0.00001)
   return tnstart, tnstop, enstart, enstop
- 
+
 
 def integrate(integrand,delta):
   """ integrate using the trapezoid method as Zanazzi-Jona suggested and was used in the f77-program...
@@ -711,7 +719,7 @@ def integrate(integrand,delta):
   :param delta: (float) the delta x in the trapezoidal method, the length of the base of each trapezoid. In implementation it is the increment of the data point of the spectrum, must be less than 1 for accurate integral results
   :return: (float) returns a product of the calculated integral and the delta
   """
-  integral = 0.5*(integrand[0][1]+integrand[-1][1])   
+  integral = 0.5*(integrand[0][1]+integrand[-1][1])
   for i in range(1,len(integrand)-1):
     integral += integrand[i][1]
   return integral*delta
@@ -730,7 +738,7 @@ def ypendry(spec,d1_spec,VI):
   for i in range(len(spec)):
     if (abs(spec[i][1]) <= 1.E-7):
       if (abs(d1_spec[i][1]) <= 1.E-7):
-        y[i][1] = 0 
+        y[i][1] = 0
       else:
         y[i][1] = (spec[i][1]/d1_spec[i][1])/((spec[i][1]/d1_spec[i][1])**2+VI**2)
     else:
@@ -744,11 +752,11 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
         Reads two spectra and calculates various R-factors -- FS 2011
         Attention: both spectra have to be given on the same, equidistant grid!
         NOTE: in the f77-program R1 is scaled by 0.75 and R2 is scaled by 0.5; this is not done here
-        Please provide a file r-fac.in with the following specifications (without the comment lines!!!) 
+        Please provide a file r-fac.in with the following specifications (without the comment lines!!!)
         (the numbers are just examples, choose them according to your particular case)
-  
+
   :param espec: (list) the experimental spectrum
-  :param tspec: (list) the theoretical spectrum, the conformer spectrum that the experimental spectrum is being compared to    
+  :param tspec: (list) the theoretical spectrum, the conformer spectrum that the experimental spectrum is being compared to
   :param start: (int) where to start the comparison, default to 1000
   :param stop: (int) where to stop the comparison, default to 1800
   :param w_incr: (float) grid interval of the spectra -- should be 1 or smaller! (otherwise integrations/derivatives are not accurate) Default to 0.5
@@ -759,9 +767,9 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
   :param VI: (int) approximate half-width of the peaks (needed for pendry r-factor). Default to 10
   """
    #for shift in numpy.arange(shift_min,shift_max+shift_incr,shift_incr):# get the interval within the two spectra are compared
-                #tnstart,tnstop,enstart,enstop = get_range(tspec,espec,w_incr,shift,start,stop) 
- 
-   
+                #tnstart,tnstop,enstart,enstop = get_range(tspec,espec,w_incr,shift,start,stop)
+
+
 # perform some checks of the input data...
   if (int(shift_incr/w_incr+0.00001) == 0):
     error("Error: shift_incr cannot be smaller than w_incr!")
@@ -772,18 +780,18 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
   if (int((espec[-1][0]-espec[0][0])/w_incr+0.0001) != len(espec)-1 ) or (int((tspec[-1][0]-tspec[0][0])/w_incr+0.0001) != len(tspec)-1 ):
     error("check w_incr!!")
 
- 
+
 # cut out data points that are not needed in order to save time...
   if (espec[0][0]-(start+shift_min-w_incr*25) < 0):
     espec=espec[-1*int((espec[0][0]-(start+shift_min-w_incr*25))/w_incr-0.00001):][:]
   if (espec[-1][0]-(stop+shift_max+w_incr*25) > 0):
-    espec=espec[:-1*(int((espec[-1][0]-(stop+shift_max+w_incr*25))/w_incr+0.00001)+1)][:] 
+    espec=espec[:-1*(int((espec[-1][0]-(stop+shift_max+w_incr*25))/w_incr+0.00001)+1)][:]
   if (tspec[0][0]-(start-w_incr*25) < 0):
     tspec=tspec[-1*int((tspec[0][0]-(start-w_incr*25))/w_incr-0.00001):][:]
   if (tspec[-1][0]-(stop+w_incr*25) > 0):
     tspec=tspec[:-1*(int((tspec[-1][0]-(stop+w_incr*25))/w_incr+0.00001)+1)][:]
 
-   
+
 # set negative intensity values to zero
   for i in range(0,len(espec)):
     if (espec[i][1]<0):
@@ -791,19 +799,19 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
   for i in range(0,len(tspec)):
     if (tspec[i][1]<0):
       tspec[i][1]=0
-   
+
 # start calculating derivatives...
-  d1_espec = deriv(espec,w_incr)   
+  d1_espec = deriv(espec,w_incr)
   d1_tspec = deriv(tspec,w_incr)
-# calculate the second derivatives if the Zanazzi-Jona R-factor is requested   
+# calculate the second derivatives if the Zanazzi-Jona R-factor is requested
   if "ZJ" in r:
     d2_tspec = deriv(d1_tspec,w_incr)
     d2_espec = deriv(d1_espec,w_incr)
-# calculate Pendry Y-function if Pendry R-factor is requested      
+# calculate Pendry Y-function if Pendry R-factor is requested
   if "pendry" in r:
     ye = ypendry(espec,d1_espec,VI)
     yt = ypendry(tspec,d1_tspec,VI)
-   
+
 
 
   min_pendry = [1.E100,0]
@@ -813,7 +821,7 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
 # start with loop over x-axis shifts
   for shift in np.arange(shift_min,shift_max+shift_incr,shift_incr):
     # get the interval within the two spectra are compared
-    tnstart,tnstop,enstart,enstop = get_range(tspec,espec,w_incr,shift,start,stop) 
+    tnstart,tnstop,enstart,enstop = get_range(tspec,espec,w_incr,shift,start,stop)
     #sys.stdout.write("\nshift: %9.3f, theory-start: %5d, theory-end: %5d, exp-start: %5d, exp-end: %5d\n" % (shift,tspec[tnstart][0],tspec[tnstop-1][0],espec[enstart][0],espec[enstop-1][0]))
     s_espec = np.array(espec[enstart:enstop]) # cut out the interval within which the comparison takes place
     s_tspec = np.array(tspec[tnstart:tnstop])
@@ -842,7 +850,7 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
       sys.stdout.write("R2 R-factor     : %f, shift: %f\n" % (r2,shift))
       if (r2 < min_r2[0]):
          min_r2=[r2,shift]
-    if "ZJ" in r:      
+    if "ZJ" in r:
       # E. Zanazzi, F. Jona, Surface Science 62 (1977), 61-88
       s_d2_tspec = np.array(d2_tspec[tnstart:tnstop])
       s_d2_espec = np.array(d2_espec[enstart:enstop])
@@ -851,7 +859,7 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
       for i in s_d1_espec:
         if abs(i[1]) > epsilon:
           epsilon = abs(i[1])
-         
+
       integrand = abs(c_scale*s_d2_tspec-s_d2_espec)*abs(c_scale*s_d1_tspec-s_d1_espec)/(abs(s_d1_espec)+epsilon)
       # interpolate integrand onto 10 times denser grid, see publication by Zanazzi & Jona
       incr = 0.1*w_incr
@@ -880,18 +888,3 @@ def rfac(espec, tspec, start=1000, stop=1800, w_incr=1.0, shift_min=-10, shift_m
     sys.stdout.write("minimal r-factor: Delta = %8.5f, R2 R-factor = %7.5f \n" % ( min_r2[1], min_r2[0]))
   if "ZJ" in r:
     sys.stdout.write("minimal r-factor: Delta = %8.5f, ZJ R-factor = %7.5f \n" % ( min_zj[1], min_zj[0]))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
