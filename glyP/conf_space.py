@@ -20,6 +20,7 @@ class Space(list):
     """
 
     _temp = 298.15 #standard temperature Kelvin
+    _kb=0.0019872036
     _kT=0.0019872036*_temp #boltzmann
     _Ha2kcal=627.5095  
 
@@ -178,13 +179,13 @@ class Space(list):
                     
 #if np.array_equal(conf.conn_mat, m.conn_mat) and conf_links == m_links : conf.topol = m.topol
 
-    def load_Fmaps(self, path):
+    def load_Fmaps(self, path, Temp = None):
 
         """Loads a set of free energy maps for the glycosidic linkages located in path
            The directory name that contains eps file with the map should be the linkage.
         """
 
-        def load_linkage(linkage_path):
+        def load_linkage(linkage_path, Temp):
            
             f = open(linkage_path, 'r') 
             pattern = None ; matrix_lett = []; matrix_dict = {}
@@ -208,10 +209,12 @@ class Space(list):
             matrix = np.zeros( [grid, grid ] )
             for i in range(grid):
                 for j in range(grid):
-                    matrix[i,j] = np.exp(-matrix_dict[matrix_lett[i][j]]/self._kT)
+                    matrix[i,j] = np.exp(-matrix_dict[matrix_lett[i][j]]/(self._kb*Temp))
             matrix = matrix/np.sum(matrix)
             #print(np.sum(matrix))
             return matrix
+
+        if not Temp: Temp=self._temp
 
         self.linkages = {}
 
@@ -220,7 +223,7 @@ class Space(list):
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.xpm'):
-                            self.linkages[dirname] = load_linkage('/'.join([path, dirname, filename]))
+                            self.linkages[dirname] = load_linkage('/'.join([path, dirname, filename]), Temp = Temp)
 
 
     def set_theory(self, software='g16', **kwargs):
@@ -235,7 +238,8 @@ class Space(list):
                         'charge':0, 
                         'multiplicity':1, 
                         'nprocs':24, 
-                        'mem':'64GB'
+                        'mem':'64GB',
+                        'extra': None
                         }
 
         elif software == 'fhiaims':

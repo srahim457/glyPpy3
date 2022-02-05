@@ -99,6 +99,11 @@ class Conformer():
                 line = '{0:5s} {1:10.3f} {2:10.3f} {3:10.3f}\n'.format(at, xyz[0], xyz[1], xyz[2])
                 f.write(line)
             f.write(' ')
+            if theory['extra'] == None: f.close()
+            else:
+               f.write('\n')
+               f.write(theory['extra'] + '\n')
+               f.write(' ') 
             f.close()
 
         elif software == 'fhiaims':
@@ -603,6 +608,10 @@ class Conformer():
             phi, psi, R = calculate_ring(self.xyz, atoms)
             self.graph.nodes[n]['ring'] = R; self.graph.nodes[n]['CP'] = [phi, psi]
 
+    def set_ring(self, ring, theta):
+
+        pass
+
     def update_vector(self):
         """ Check if this can be deleted...
             might not need it
@@ -633,9 +642,9 @@ class Conformer():
 
         return 0 
 
-    def save_xyz(self, output="geom.xyz" ):
+    def save_xyz(self):
 
-        xyz_file=self.outdir+"/"+output
+        xyz_file='/'.join([self.outdir,"geometry.xyz"])
         f = open(xyz_file, 'w')
         f.write('{0:3d}\n'.format(self.NAtoms))
         f.write('xyz test file\n')
