@@ -150,7 +150,7 @@ class Conformer():
                 gauss_job = Popen("g16 input.com ", shell=True, stdout=out, stderr=out)
                 gauss_job.wait()
             os.chdir(cwd)
-            return gauss_job.returncode
+            return gauss_job.returncode #could pose an error with the puckscan script, inverted return 
 
         elif software == 'fhiaims':
             with open('aims.log', 'w') as out: 
