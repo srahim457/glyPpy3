@@ -113,7 +113,28 @@ def calculate_ring(xyz, ring_atoms):
   for i in 'O', 'C1', 'C2', 'C3', 'C4', 'C5': sorted_atoms.append(ring_atoms[i])
 
   phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms)
+
   return phi, psi, R
+
+def ring_dihedrals(conf, ring_atoms):
+  """ This function will return the 3 theta angles that define a ring pucker, this function will phase out the calculate_ring
+
+  """
+  ra = ring_atoms
+  dih_atoms = [
+         [ra['C5'],ra['C3'],ra['C1'],ra['C2']],
+         [ra['C1'],ra['C5'],ra['C3'],ra['C4']],
+         [ra['C3'],ra['C1'],ra['C5'],ra['O' ]]]
+
+  theta = []
+  for n in range(3):
+      t = measure_dihedral( conf, dih_atoms[n])[0]
+      #print (old)
+      if   t < 180.0 and t > 0.0      : t =  180.0 - t
+      elif t > 180.0                    : t = -180.0 + t
+      elif t < 0.0   and t > -180.0   : t = -180.0 - t
+      theta.append(t)
+  return(theta)
 
 def determine_carried_atoms(at1, at2, conn_mat):
 
@@ -224,6 +245,26 @@ def measure_dihedral(conf, list_of_atoms):
       return -(alpha*180.0)/np.pi, axor
   else:
       return (alpha*180.0)/np.pi, axor
+
+def gaussian_string_parameter(freeze, ra):
+  """Returns the string parameter for gaussian to freeze either the dihedral angles or atom postitions that form the dihedral angles
+  :param freeze: (str) a string either "dih" or "atoms"; this will return the string parameter to freeze the dihedral angles or freezing the atoms that form the dihedrals
+  :param ra: (dict) ra (ring atoms) is a dictionary with the atom name and the atom number in the list of molecules
+  """
+  dih_atoms = [
+         [ra['C5'],ra['C3'],ra['C1'],ra['C2']],
+         [ra['C1'],ra['C5'],ra['C3'],ra['C4']],
+         [ra['C3'],ra['C1'],ra['C5'],ra['O' ]]]
+  if freeze == "dih":
+    freeze_dih=''
+    for List in dih_atoms:
+      for num in List:
+        freeze_dih=freeze_dih+str(num+1)+' '
+      freeze_dih=freeze_dih+'F\n'
+    return(freeze_dih)
+  elif freeze == "atoms":
+    freeze_atoms= 'notatoms='+str(ra['O'])+','+str(ra['C1']+1)+','+str(ra['C2']+1)+','+str(ra['C3']+1)+','+str(ra['C4']+1)+','+str(ra['C5']+1)
+    return(freeze_atoms)
 
 
 def set_angle(conf, list_of_atoms, new_ang):

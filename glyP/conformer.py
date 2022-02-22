@@ -51,7 +51,7 @@ class Conformer():
         self.topol = self._id
         geom = [] ; atoms = []
 
-        for n, line in enumerate(open('/'.join([self.path, "geometry.xyz"]), 'r').readlines()):
+        for n, line in enumerate(open('/'.join([self.path, "geometry.xyz"]), 'r').readlines()): #this should be anything .xyz
 
             if n == 0 and self.NAtoms == None: self.NAtoms = int(line)
             if n > 1:
@@ -607,6 +607,9 @@ class Conformer():
             atoms = self.graph.nodes[n]['ring_atoms']
             phi, psi, R = calculate_ring(self.xyz, atoms)
             self.graph.nodes[n]['ring'] = R; self.graph.nodes[n]['CP'] = [phi, psi]
+            # !!!! when setting a new dihedral this needs to be updated
+            self.graph.nodes[n]['pucker']=ring_dihedrals(self,atoms)
+
 
     def set_ring(self, ring, theta):
 
@@ -645,6 +648,7 @@ class Conformer():
     def save_xyz(self):
 
         xyz_file='/'.join([self.outdir,"geometry.xyz"])
+        print(xyz_file)
         f = open(xyz_file, 'w')
         f.write('{0:3d}\n'.format(self.NAtoms))
         f.write('xyz test file\n')
