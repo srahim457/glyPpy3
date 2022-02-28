@@ -605,11 +605,10 @@ class Conformer():
         """
         for n in self.graph.nodes:
             atoms = self.graph.nodes[n]['ring_atoms']
-            phi, psi, R = calculate_ring(self.xyz, atoms)
-            self.graph.nodes[n]['ring'] = R; self.graph.nodes[n]['CP'] = [phi, psi]
+            
             # !!!! when setting a new dihedral this needs to be updated
             self.graph.nodes[n]['pucker']=ring_dihedrals(self,atoms)
-
+            self.graph.nodes[n]['ring'] = ring_canon(self.graph.nodes[n]['pucker']); 
 
     def set_ring(self, ring, theta):
 
@@ -621,7 +620,8 @@ class Conformer():
         """
         self.ga_vector = []
         for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
-        for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
+        # !!! the ga uses CP coordinates, this needs to be updated to the pucker coordinates
+        #for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
 
     def update_topol(self, models):
         """ Updates topology and checks for proton shifts
