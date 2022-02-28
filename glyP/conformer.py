@@ -341,7 +341,7 @@ class Conformer():
         #else: print("E=%20.4f" %( self.E))
         for n  in self.graph.nodes:
             ring = self.graph.nodes[n]
-            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='')
+            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['pucker'][0], ring['pucker'][1], ring['pucker'][2]), end='')
             if 'c6_atoms' in ring:
                 print("{0:10.1f}".format(ring['c6_dih']), end = '\n')
             else:
@@ -613,15 +613,6 @@ class Conformer():
     def set_ring(self, ring, theta):
 
         pass
-
-    def update_vector(self):
-        """ Check if this can be deleted...
-            might not need it
-        """
-        self.ga_vector = []
-        for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
-        # !!! the ga uses CP coordinates, this needs to be updated to the pucker coordinates
-        #for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
 
     def update_topol(self, models):
         """ Updates topology and checks for proton shifts
