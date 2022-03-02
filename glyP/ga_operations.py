@@ -95,7 +95,7 @@ def draw_random_pucker(prob_model=None):
 
     #for i,j  in zip(pucker_list, prob_model):
     n = utilities.draw_random()
-    J = 0
+    J =  0
     for i,j  in zip(pucker_list, prob_model):
         J += j
         if n < J: 

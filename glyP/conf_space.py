@@ -82,9 +82,7 @@ class Space(list):
         print("Loading {0:30s}".format(path))
         #check if this is wont lead to an error if the path doesnt exist 
         for (root, dirs, files) in os.walk('./'+path):
-            #print (root, dirs, files)
             for dirname in dirs:
-                #print(dirname)
                 for ifiles in os.walk(path+'/'+dirname):
                     for filename in ifiles[2]:
                         if filename.endswith('.log'):
@@ -98,6 +96,7 @@ class Space(list):
 
                                     if conf.Nmols == 1:
                                         conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
+                                        #print(conf)
                                         self.append(conf)
                                     else: 
                                         del conf
@@ -189,10 +188,10 @@ class Space(list):
            
             f = open(linkage_path, 'r') 
             pattern = None ; matrix_lett = []; matrix_dict = {}
-
+            grid = None
             for line in f.readlines():
 
-                if re.search(r'(\d\s\d\b)', line): 
+                if re.search(r'(\d\s\d\b)', line) and grid is None:
                     grid = int(line.split()[1])
                     pattern = grid * '[A-Z]'
 
@@ -245,7 +244,7 @@ class Space(list):
         elif software == 'fhiaims':
 
             self.theory = { 
-                        'exec': '/share/apps/fhi-aims.210226/aims.210226.scalapack.mpi.x', 
+                        'exec': '/exports/apps/fhi-aims.210226/aims.210226.scalapack.mpi.x', 
                         'xc': 'pbe',
                         'basis_set':'light', 
                         'jobtype':"relax_geometry  trm 5E-3\n sc_accuracy_forces  5E-4\n output_level MD_light",
@@ -255,7 +254,8 @@ class Space(list):
                         'charge': '0.0', 
                         'density_update_method': "orbital", 
                         'nprocs': 24, 
-                        'check_cpu_consistency': ".false."
+                        'check_cpu_consistency': ".false.",
+                        'extra' : None
                         }
 
         for key in kwargs: 
@@ -299,7 +299,7 @@ class Space(list):
             for conf in self: 
                 conf.Erel = conf.E -  Eref
 
-    def print_relative(self, alive=None):
+    def print_relative(self, alive=None, pucker=False):
         """Prints relative energies of each conformer, related to reference_to_zero
         """
 
@@ -316,19 +316,26 @@ class Space(list):
         for n, conf in enumerate(self): 
             if n == alive: print("---------------------------------")
             if hasattr(self[0], 'Frel'):
-               print("%3d%20s%10s%20.8f%8.2f%8.2f%8.2f" %(n, conf._id, conf.topol, conf.F, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
+                try: hasattr(conf, 'Frel')
+                except: continue
+                print("%3d%20s%10s%20.8f%8.2f%8.2f%8.2f" %(n, conf._id, conf.topol, conf.F, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
             else: 
-               print("%3d%20s%10s%20.8f%8.2f" %(n,conf._id, conf.topol, conf.E, conf.Erel*self._Ha2kcal), end='')
+                try: hasattr(conf, 'Erel')
+                except: continue
+                print("%3d%20s%10s%20.8f%8.2f" %(n,conf._id, conf.topol, conf.E, conf.Erel*self._Ha2kcal), end='')
 
-            if hasattr(self[0], 'ccs'):
+            if hasattr(conf, 'ccs'):
                 print("{0:8.1f}".format(conf.ccs), end='')
-            if hasattr(self[0], 'anomer'):
+            if hasattr(conf, 'anomer'):
                 print("{0:>5s} ".format(conf.anomer[0]), end='')
 
-            if hasattr(self[0], 'graph'):
+            if hasattr(conf, 'graph'):
                 for e in conf.graph.edges:
                     edge = conf.graph.edges[e]
                     print("{0:1d}->{1:1d}: {2:6s}".format(e[0], e[1], edge['linker_type']), end='')
+                for r in conf.graph.nodes:
+                    ring = conf.graph.nodes[r]
+                    print("{0:5s}{1:8.3f}{2:8.3f}{3:8.3f}".format(ring['ring'], *ring['pucker']), end='')
             print(' ')
 
             #else: 

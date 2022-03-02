@@ -41,6 +41,7 @@ class Conformer():
         self._id = topol
         self.topol = topol
         self.path  = path
+        self.status = False
 
     def load_model(self):
         """Loads a xyz and constructs a confromer (model) that has only topol (name of the directory), xyz coordinates and atoms.
@@ -62,6 +63,7 @@ class Conformer():
 
         self.xyz = np.array(geom)
         self.atoms = atoms
+        self.status = False
 
     def create_input(self, theory, output,  software = 'g16'):
 
@@ -123,14 +125,16 @@ class Conformer():
             
             for at in diff_atoms:
                 EN="{0:02d}".format(element_number(at))
-                with open('/share/apps/fhi-aims.210226/species_defaults/'+theory['basis_set'] + '/' + EN + '_' +at+'_default','r') as light: 
+                with open('/exports/apps/fhi-aims.210226/species_defaults/'+theory['basis_set'] + '/' + EN + '_' +at+'_default','r') as light: 
                     for line in light.readlines():
                         c.write(line)
             c.close()
 
             g = open(geom_file, 'w')
-            for at, xyz in zip(self.atoms, self.xyz):                                           
-                line = 'atom      {0:10.3f} {1:10.3f} {2:10.3f} {3:3s}\n'.format( xyz[0], xyz[1], xyz[2], at)
+            for n, at, xyz in zip(range(self.NAtoms), self.atoms, self.xyz):
+                if n in theory['extra']: freeze = 'constrain_relaxation .true.'
+                else: freeze = '' 
+                line = 'atom      {0:10.3f} {1:10.3f} {2:10.3f} {3:3s}{4:s}\n'.format( xyz[0], xyz[1], xyz[2], at, freeze)
                 g.write(line)
             g.close()
 
@@ -204,26 +208,27 @@ class Conformer():
             #temprorary variables to hold the data
             freq = [] ; ints = [] ; vibs = [] ; geom = [] ; atoms = []
     
-            job_opt = False ; job_freq = False ; job_optfreq = False ; job_sp = False ; job = 0
+            job_opt = False ; job_freq = False ; job_optfreq = False ; job_sp = False ; job_type = False
     
             self.NAtoms = None
             self._id    = self.path.split('/')[-1]
     
             for line in open("/".join([self.path, "input.log"]), 'r').readlines():
     
-                    if re.search('^ #', line) and job == 0:
+                    if job_type == False and re.search('^ #', line):
+
                         if "opt" in line:
                             if "freq" in line: 
-                                job_optfreq = True ; job += 1 
+                                job_optfreq = True ; job_type = True
                                 #print("Reading optfreq")
                             else: 
-                                job_opt = True ; job += 1 
+                                job_opt = True ; job_type = True 
                                 #print("Reading opt")
                         elif "freq" in line: 
-                                job_optfreq = True ; freq_flag = True ;  job += 1 
+                                job_optfreq = True ; freq_flag = True ;  job_type = True
                                 job_freq = True
                                 #print("Reading freq")
-                        else: job_sp = True ; job += 1 
+                        else: job_sp = True ; job_type = True
     
                     if self.NAtoms is None and re.search('^ NAtoms=', line): 
                         self.NAtoms = int(line.split()[1])
@@ -277,7 +282,8 @@ class Conformer():
                             atoms.append(element_symbol(line.split()[1]))
                             if int(line.split()[0]) == self.NAtoms:
                                read_geom = False
-    
+                        elif freq_flag == True and re.search('Normal termination', line): self.status = True
+
                     elif job_opt == True: 
     
                         if re.search('SCF Done',   line): E = float(line.split()[4])
@@ -291,7 +297,9 @@ class Conformer():
                              atoms.append(element_symbol(line.split()[1]))
                              if int(line.split()[0]) == self.NAtoms:
                                read_geom = False
-    
+                        elif opt_flag == True and re.search('Normal termination', line): 
+                            self.status = True
+
                     elif job_sp == True:
     
                         print("No idea what you're dong")
@@ -328,6 +336,8 @@ class Conformer():
                     geom.append([ float(x) for x in line.split()[1:4] ])
                     atoms.append(line.split()[-1])
                 if read_geom == True and "--------" in line: read_geom = False
+
+                if "Have a nice day." in line: self.status = True
     
             self.xyz = np.array(geom)
             self.atoms = atoms
@@ -338,10 +348,10 @@ class Conformer():
 
         print ("%20s%20s   NAtoms=%5d" %(self._id, self.topol, self.NAtoms))
         if hasattr(self, 'F'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
-        #else: print("E=%20.4f" %( self.E))
+        else: print("E=%20.4f" %(self.E))
         for n  in self.graph.nodes:
             ring = self.graph.nodes[n]
-            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['pucker'][0], ring['pucker'][1], ring['pucker'][2]), end='')
+            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f} {4:6.1f}".format(n, ring['ring'], ring['pucker'][0], ring['pucker'][1], ring['pucker'][2]), end='')
             if 'c6_atoms' in ring:
                 print("{0:10.1f}".format(ring['c6_dih']), end = '\n')
             else:
