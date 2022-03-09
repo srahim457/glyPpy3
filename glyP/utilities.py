@@ -58,7 +58,7 @@ def adjacent_atoms(conn_mat, at):
   """returns all adjacent atoms to a specific atom in a conformation
 
   :param conn_mat: the connectivity matrix
-  :param at: a selected atom
+  :param at: index of a selected atom
   :return: all adjacent atoms to the selected atom
   """
   return np.nonzero(conn_mat[at,:])[0]

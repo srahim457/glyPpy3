@@ -283,7 +283,7 @@ class Conformer():
                         if re.search('SCF Done',   line): E = float(line.split()[4])
                         if re.search('Optimization completed.', line): 
                              self.E = E ; opt_flag = True  
-                        elif opt_flag == True and re.search('Coordinates', line) : read_geom = True
+                        elif opt_flag == True and re.search('Standard orientation', line) : read_geom = True
                         elif opt_flag == True and read_geom == True and re.search('^\s*.\d', line):
                              #geom.append(map(float, line.split()[3:6])) 
                              #convert to a parse directly into list rather than map
