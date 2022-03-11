@@ -1,5 +1,4 @@
 import math
-from . import calc_cp
 from . import rmsd, utilities
 import numpy as np
 import sys, copy

@@ -10,7 +10,21 @@ def puck_scan(in_dir, out_dir, ring, detail): #take a command line argument for 
     ring_scan.load_models(in_dir)
 	#working with glucose so this makes a copy of the single model created; subject to change
     reference_conf = ring_scan.models[0]
-    ring_scan.set_theory(software='g16', nprocs=24, jobtype='opt=readopt', extra='notatoms=1,3,4,8,12,16' )
+    #3 sets of the 4 atoms that make dihedral, followed by F\n
+    # '1 2 3 4 F\n' + '2 3 4 5 F\n' + '3 4 5 1 F\n'
+    ra = reference_conf.graph.nodes[ring]['ring_atoms']
+    
+    freeze = 'atoms'
+    
+    if freeze == 'dih':
+        freeze_dih=glyP.utilities.gaussian_string_parameter(freeze,ra)
+        print(freeze_dih)
+        ring_scan.set_theory(software='g16', nprocs=24, jobtype='opt=modredundant', extra=freeze_dih )
+    elif freeze == 'atoms':
+        freeze_atoms=glyP.utilities.gaussian_string_parameter(freeze,ra)
+        print(freeze_atoms)
+        #ring_scan.set_theory(software='g16', nprocs=24, jobtype='opt=readopt', extra='notatoms=1,3,4,8,12,16' )
+        ring_scan.set_theory(software='g16', nprocs=24, jobtype='opt=modredundant', extra=freeze_dih )
 
     pucker_conformations = glyP.utilities.pucker_scan(detail)
     for count, degrees in enumerate(pucker_conformations):
@@ -23,6 +37,7 @@ def puck_scan(in_dir, out_dir, ring, detail): #take a command line argument for 
         glyP.utilities.set_ring_pucker(new_conf, ring, degrees)
 
         new_conf.create_input(ring_scan.theory, ring_scan.path)
+        
         succ_job = new_conf.run_qm(ring_scan.theory, software='g16')
 
         if succ_job:
@@ -31,7 +46,7 @@ def puck_scan(in_dir, out_dir, ring, detail): #take a command line argument for 
             print(new_conf)
         else:
             print(new_conf._id + " failed.")
-
+		
     print(ring_scan)
     ring_scan.reference_to_zero()
     ring_scan.print_relative()
@@ -48,7 +63,7 @@ def main():
     parser.add_argument('--out_dir', required=True, help='the name of the output directory')
     args = parser.parse_args()
 
-    with open("scan.log",'w') as f:
+    with open(args.in_dir+"scan.log",'w') as f:
         puck_scan(args.in_dir, args.out_dir, args.ring, args.detail)
         
 

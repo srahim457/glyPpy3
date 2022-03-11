@@ -1,5 +1,5 @@
 import math
-from . import calc_cp
+#from . import calc_cp
 from . import rmsd
 import numpy as np
 import networkx
@@ -32,6 +32,14 @@ def get_distance(at1, at2):
   :return: (float) the distance between 2 atoms
   """
   return math.sqrt((at1[0]-at2[0])**2+(at1[1]-at2[1])**2+(at1[2]-at2[2])**2)
+
+def norm(a):
+    """Norm of a vector, basically returns the non-negative value of a number
+
+    :param a: (float) some value
+    :return: (float) the normalized value
+    """
+    return math.sqrt(numpy.sum(a*a))
 
 def clashcheck(conf, cutoff=1.2):
   """Checks if there is a clash between atoms
@@ -102,18 +110,43 @@ def element_number(A):
   periodic_table = { 'H' : 1, 'C' : 6, 'N' : 7, 'O' : 8 , 'F' : 9, 'Si' : 14 }
   return periodic_table[A]
 
-def calculate_ring(xyz, ring_atoms):
-  """ Calculates the dihedral angle between rings
+def ring_dihedrals(conf, ring_atoms):
+  """ This function will return the 3 theta angles that define a ring pucker
 
-  :param xyz: (list) a list of positions
-  :param ring_atoms: (list) list of atoms in a ring of the selected conformer
   """
+  ra = ring_atoms
+  dih_atoms = [
+         [ra['C5'],ra['C3'],ra['C1'],ra['C2']],
+         [ra['C1'],ra['C5'],ra['C3'],ra['C4']],
+         [ra['C3'],ra['C1'],ra['C5'],ra['O' ]]]
 
-  sorted_atoms = []
-  for i in 'O', 'C1', 'C2', 'C3', 'C4', 'C5': sorted_atoms.append(ring_atoms[i])
+  theta = []
+  for n in range(3):
+      t = measure_dihedral( conf, dih_atoms[n])[0]
+      #print (old)
+      if   t < 180.0 and t > 0.0      : t =  180.0 - t
+      elif t > 180.0                    : t = -180.0 + t
+      elif t < 0.0   and t > -180.0   : t = -180.0 - t
+      theta.append(t)
+  return(theta)
 
-  phi, psi, R = calc_cp.cp_values(xyz, sorted_atoms)
-  return phi, psi, R
+def ring_canon(theta):
+
+  canon_list = ('1C4',  '4C1', '1,4B', 'B1,4', '2,5B', 'B2,5','3,6B', 'B3,6', '1H2',  '2H1',
+    '2H3',  '3H2','3H4',  '4H3','4H5',  '5H4','5H6',  '6H5','6H1' ,  '1H6','1S3' ,  '3S1','5S1' ,  '1S5',
+    '6S2' ,  '2S6','1E'  ,  'E1' ,'2E'  ,  'E2' ,'3E'  ,  'E3' ,'4E'  ,  'E4' ,'5E'  ,  'E5' , '6E'  ,  'E6' )
+
+  #find the closest coordinate to theta
+  distances=[]
+  for i in canon_list:
+    canonical_coordinates=ring_pucker_dict(i)
+    d=get_distance(theta,canonical_coordinates)
+    entry = (d,i)
+    distances.append(entry)
+  distances.sort(key= lambda i: i[0])
+  canon=distances[0][1] 
+  
+  return canon
 
 def determine_carried_atoms(at1, at2, conn_mat):
 
@@ -224,6 +257,26 @@ def measure_dihedral(conf, list_of_atoms):
       return -(alpha*180.0)/np.pi, axor
   else:
       return (alpha*180.0)/np.pi, axor
+
+def gaussian_string_parameter(freeze, ra):
+  """Returns the string parameter for gaussian to freeze either the dihedral angles or atom postitions that form the dihedral angles
+  :param freeze: (str) a string either "dih" or "atoms"; this will return the string parameter to freeze the dihedral angles or freezing the atoms that form the dihedrals
+  :param ra: (dict) ra (ring atoms) is a dictionary with the atom name and the atom number in the list of molecules
+  """
+  dih_atoms = [
+         [ra['C5'],ra['C3'],ra['C1'],ra['C2']],
+         [ra['C1'],ra['C5'],ra['C3'],ra['C4']],
+         [ra['C3'],ra['C1'],ra['C5'],ra['O' ]]]
+  if freeze == "dih":
+    freeze_dih=''
+    for List in dih_atoms:
+      for num in List:
+        freeze_dih=freeze_dih+str(num+1)+' '
+      freeze_dih=freeze_dih+'F\n'
+    return(freeze_dih)
+  elif freeze == "atoms":
+    freeze_atoms= 'notatoms='+str(ra['O'])+','+str(ra['C1']+1)+','+str(ra['C2']+1)+','+str(ra['C3']+1)+','+str(ra['C4']+1)+','+str(ra['C5']+1)
+    return(freeze_atoms)
 
 
 def set_angle(conf, list_of_atoms, new_ang):

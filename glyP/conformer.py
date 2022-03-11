@@ -51,7 +51,7 @@ class Conformer():
         self.topol = self._id
         geom = [] ; atoms = []
 
-        for n, line in enumerate(open('/'.join([self.path, "geometry.xyz"]), 'r').readlines()):
+        for n, line in enumerate(open('/'.join([self.path, "geometry.xyz"]), 'r').readlines()): #this should be anything .xyz
 
             if n == 0 and self.NAtoms == None: self.NAtoms = int(line)
             if n > 1:
@@ -150,7 +150,7 @@ class Conformer():
                 gauss_job = Popen("g16 input.com ", shell=True, stdout=out, stderr=out)
                 gauss_job.wait()
             os.chdir(cwd)
-            return gauss_job.returncode
+            return gauss_job.returncode #could pose an error with the puckscan script, inverted return 
 
         elif software == 'fhiaims':
             with open('aims.log', 'w') as out: 
@@ -341,7 +341,7 @@ class Conformer():
         #else: print("E=%20.4f" %( self.E))
         for n  in self.graph.nodes:
             ring = self.graph.nodes[n]
-            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['CP'][0], ring['CP'][1]), end='')
+            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['pucker'][0], ring['pucker'][1], ring['pucker'][2]), end='')
             if 'c6_atoms' in ring:
                 print("{0:10.1f}".format(ring['c6_dih']), end = '\n')
             else:
@@ -605,20 +605,14 @@ class Conformer():
         """
         for n in self.graph.nodes:
             atoms = self.graph.nodes[n]['ring_atoms']
-            phi, psi, R = calculate_ring(self.xyz, atoms)
-            self.graph.nodes[n]['ring'] = R; self.graph.nodes[n]['CP'] = [phi, psi]
+            
+            # !!!! when setting a new dihedral this needs to be updated
+            self.graph.nodes[n]['pucker']=ring_dihedrals(self,atoms)
+            self.graph.nodes[n]['ring'] = ring_canon(self.graph.nodes[n]['pucker']); 
 
     def set_ring(self, ring, theta):
 
         pass
-
-    def update_vector(self):
-        """ Check if this can be deleted...
-            might not need it
-        """
-        self.ga_vector = []
-        for e in self.graph.edges: self.ga_vector.append(self.graph.edges[e]['dihedral'])
-        for n in self.graph.nodes: self.ga_vector.append(self.graph.nodes[n]['CP'])
 
     def update_topol(self, models):
         """ Updates topology and checks for proton shifts
@@ -645,6 +639,7 @@ class Conformer():
     def save_xyz(self):
 
         xyz_file='/'.join([self.outdir,"geometry.xyz"])
+        print(xyz_file)
         f = open(xyz_file, 'w')
         f.write('{0:3d}\n'.format(self.NAtoms))
         f.write('xyz test file\n')
