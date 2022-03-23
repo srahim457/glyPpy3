@@ -2,9 +2,10 @@ import os, sys
 import numpy as np
 from .conformer import *
 from .utilities import *
-from copy import copy as cp
+import copy
 import networkx as nx
 from operator import itemgetter, attrgetter
+from scipy.cluster.hierarchy import dendrogram, linkage, cut_tree
 
 class Space(list):
 
@@ -27,11 +28,15 @@ class Space(list):
     def __init__(self, path, load=True, software='g16'):
 
         self.path = path
+        self.logfiles_dir = []
         try: os.makedirs(self.path)
+
         except: 
             if load == True: 
                 print("{0:10s} directory already exists, load existing data".format(path))
                 self.load_dir(path, topol=None, software=software)
+            else: 
+                pass
 
     def __str__(self):
          
@@ -67,6 +72,13 @@ class Space(list):
         for conf in rval: rret.append(conf)
         return rret
 
+    def __add__(self, space):
+
+        new_space = copy.deepcopy(self)
+        for conf in space: 
+            new_space.append(copy.deepcopy(conf))
+        return new_space
+
     def __getslice__(self, i, j):
         """gets a set of conformers in the space
         """
@@ -81,6 +93,8 @@ class Space(list):
         """
         print("Loading {0:30s}".format(path))
         #check if this is wont lead to an error if the path doesnt exist 
+
+        self.logfiles_dir.append(path)
         for (root, dirs, files) in os.walk('./'+path):
             for dirname in dirs:
                 for ifiles in os.walk(path+'/'+dirname):
@@ -114,6 +128,20 @@ class Space(list):
                                         del conf
 
 
+                        elif software == 'xyz' and filename.endswith('.xyz'): 
+
+                            conf = Conformer(topol, '/'.join([path, dirname]))
+                            conf.load_log(software="xyz")
+                            conf.connectivity_matrix(distXX=1.65, distXH=1.25)
+
+                            if conf.Nmols == 1:
+                                conf.assign_atoms() ; conf.measure_c6() ; conf.measure_glycosidic() ; conf.measure_ring()
+                                #print(conf)
+                                self.append(conf)
+                            else: 
+                                del conf
+
+
     def load_exp(self, path, ir_resolution=1.0):
         """Selects the experimental conformer that other conformers will be compared to. Creates/updates the self.expIR member of this class
 
@@ -125,6 +153,16 @@ class Space(list):
         new_grid = np.arange(np.ceil(expIR[0,0]), np.floor(expIR[-1,0]), self.ir_resolution)
         self.expIR = np.vstack((new_grid, interpolate.griddata(expIR[:,0], expIR[:,1], new_grid, method='cubic'))).T #espec - experimental spectrum
 
+    def dump_xyz(self):
+
+        with open('/'.join([self.path, 'all_structures.xyz']),'w') as out: 
+
+            for conf in self:
+                out.write("{0:5d}\n".format(conf.NAtoms))
+                out.write("{0:30s}\n".format(conf._id))
+                for at in range(conf.NAtoms):
+                    out.write("{0:3s}{1:12.3f}{2:12.3f}{3:12.3f}\n".format(conf.atoms[at], conf.xyz[at][0], conf.xyz[at][1], conf.xyz[at][2]))
+
     def load_models(self, path):
         """Loads a set of specific models used of analysis
         """
@@ -135,8 +173,9 @@ class Space(list):
                     for filename in ifiles[2]:
                         if filename.endswith('.xyz'):
                             conf = Conformer(None, '/'.join([path, dirname]))
-                            conf.load_model()
+                            conf.load_log(software="xyz")
                             self.models.append(conf)
+
         self.Nmodels = len(self.models)
 
         print("Analyzing Models:", end="\n")
@@ -145,7 +184,7 @@ class Space(list):
 
             print("{0:10s}:   ".format(conf._id), end='')
             conf.ring = [] ; conf.ring_angle = [] ; conf.dih_angle = []
-            conf.connectivity_matrix(distXX=1.6, distXH=1.20)
+            conf.connectivity_matrix(distXX=1.6, distXH=1.15)
             conf.assign_atoms() ; conf.measure_c6() ; conf.measure_ring() ; conf.measure_glycosidic()
             if hasattr(conf, 'graph'):
                 for e in conf.graph.edges:
@@ -284,65 +323,80 @@ class Space(list):
         if hasattr(self[0], 'F'):
             for conf in self:
                 if energy_function == 'E' and  conf.E < Eref:
-                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
+                    Eref = copy.copy(conf.E) ; Href = copy.copy(conf.H) ; Fref = copy.copy(conf.F)
                 elif energy_function == 'H' and  conf.H < Href:
-                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
+                    Eref = copy.copy(conf.E) ; Href = copy.copy(conf.H) ; Fref = copy.copy(conf.F)
                 elif energy_function == 'F' and  conf.F < Fref:
-                    Eref = cp(conf.E) ; Href = cp(conf.H) ; Fref = cp(conf.F)
+                    Eref = copy.copy(conf.E) ; Href = copy.copy(conf.H) ; Fref = copy.copy(conf.F)
             for conf in self: 
                 conf.Erel = conf.E -  Eref;  conf.Hrel = conf.H -  Href ;  conf.Frel = conf.F -  Fref
         else:
             for conf in self:
                 if energy_function == 'E' and  conf.E < Eref:
-                    Eref = cp(conf.E)
+                    Eref = copy.copy(conf.E)
 
             for conf in self: 
                 conf.Erel = conf.E -  Eref
 
-    def print_relative(self, alive=None, pucker=False):
+    def print_relative(self, alive=None, pucker=False, output = None):
         """Prints relative energies of each conformer, related to reference_to_zero
         """
 
+        if output: 
+            out = open('/'.join([self.path, output]),'w') 
+        else:
+            out = sys.stdout
+ 
         if len(self) != 0:
-            try: hasattr(self[0], 'Erel')
+            try: hasattr(self[0], 'E') and not hasattr(self[0], 'Erel')
             except: 
                 print("run reference_to_zero first")
                 return None 
         else:
             return None 
-        if hasattr(self[0], 'Frel'): print ("%23s%10s%20s%8s%8s%8s" %('id', 'topol',  'F-abs', 'E', 'H', 'F'))
-        else:  print ("%23s%10s%20s%8s" %('id', 'topol',  'E-abs', 'E'))
-
+        
+        if   hasattr(self[0], 'Frel'):  out.write ("{0:>23s}{1:>16s}{2:>20s}{3:>8s}{4:>10s}{5:>10s}\n".format('id', 'topol',  'F-abs', 'E', 'H', 'F'))
+        elif hasattr(self[0], 'Erel'):  out.write ("{0:>23s}{1:>16s}{2:>20s}{3:>8s}\n".format('id', 'topol',  'E-abs', 'E')) 
+        else:                           out.write ("{0:>23s}{1:>16s}\n".format('id','topol'))
+ 
         for n, conf in enumerate(self): 
-            if n == alive: print("---------------------------------")
+ 
+            if n == alive: out.write("---------------------------------")
+ 
             if hasattr(self[0], 'Frel'):
+ 
                 try: hasattr(conf, 'Frel')
                 except: continue
-                print("%3d%20s%10s%20.8f%8.2f%8.2f%8.2f" %(n, conf._id, conf.topol, conf.F, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal), end='')
-            else: 
+                out.writet("{0:3d}{1:>20s}{2:>16s}{3:20.8f}{4:8.2f}{5:8.2f}{6:8.2f}".format(n, conf._id, conf.topol, conf.F, conf.Erel*self._Ha2kcal, conf.Hrel*self._Ha2kcal, conf.Frel*self._Ha2kcal))
+ 
+            elif hasattr(self[0], 'Erel'):
+ 
                 try: hasattr(conf, 'Erel')
                 except: continue
-                print("%3d%20s%10s%20.8f%8.2f" %(n,conf._id, conf.topol, conf.E, conf.Erel*self._Ha2kcal), end='')
 
+                out.write("{0:3d}{1:>20s}{2:>16s}{3:20.8f}{4:8.2f}".format(n, conf._id, conf.topol, conf.E, conf.Erel*self._Ha2kcal))
+  
+            else:
+ 
+                out.write("{0:3d}{1:>20s}{2:>16s}".format(n, conf._id, conf.topol))
+ 
             if hasattr(conf, 'ccs'):
-                print("{0:8.1f}".format(conf.ccs), end='')
+                out.write("{0:8.1f}".format(conf.ccs))
+ 
             if hasattr(conf, 'anomer'):
-                print("{0:>5s} ".format(conf.anomer[0]), end='')
-
+                out.write("{0:>5s} ".format(conf.anomer[0]))
+ 
             if hasattr(conf, 'graph'):
                 for e in conf.graph.edges:
                     edge = conf.graph.edges[e]
-                    print("{0:1d}->{1:1d}: {2:6s}".format(e[0], e[1], edge['linker_type']), end='')
-                for r in conf.graph.nodes:
-                    ring = conf.graph.nodes[r]
-                    print("{0:5s}{1:8.3f}{2:8.3f}{3:8.3f}".format(ring['ring'], *ring['pucker']), end='')
-            print(' ')
+                    out.write("{0:1d}->{1:1d}: {2:6s}".format(e[0], e[1], edge['linker_type']))
+                if pucker == True:
+                    for r in conf.graph.nodes:
+                        ring = conf.graph.nodes[r]
+                        out.write("{0:5s}{1:8.3f}{2:8.3f}{3:8.3f}".format(ring['ring'], *ring['pucker']))
+            out.write('\n')
 
-            #else: 
-                #print ("%20s%20s" %('id', 'E [kcal/mol]'))
-                #for conf in self: print("%20s%20.2f" %(conf._id, conf.Erel*self._Ha2kcal))
 
-        #return ''
 
     def remove_duplicates(self, rmsd = 0.1):
         """Removes duplicate conformers from the space
@@ -359,13 +413,58 @@ class Space(list):
             del self[rem]
 
 
+    def rmsd_matrix(self, Hydrogen=True):
+
+
+        atoms = set(self[0].atoms)
+        if Hydrogen == False: 
+            atoms.remove('H')
+        print(atoms)
+        self.rmsd_mat = np.zeros((len(self), len(self)))
+
+        for i, conf1  in enumerate(self):
+            for j, conf2 in enumerate(self):
+                self.rmsd_mat[i, j]  = calculate_rmsd(conf1, conf2, atoms)
+
+    def cluster(self, output="cluster", energy_function='E', E_cutoff=[100.00], Dist_cutoff=[1.0], plot=False):
+
+        if len(E_cutoff) > len(Dist_cutoff):
+            print("E_cutoff list longer than Dist_cutoff")
+            return None
+
+        if not hasattr(self, 'rmsd_mat'): self.rmsd_matrix(Hydrogen=False)
+
+        Z = linkage(self.rmsd_mat, 'single', optimal_ordering=True)
+
+        if plot == True: 
+            fig = plt.figure(figsize=(25,10))
+            dn = dendrogram (Z)
+            fig.tight_layout()
+            plt.savefig('/'.join([self.path, 'cluster.pdf']), dpi=300)
+
+        unique_conf = Space(output, load=False)
+
+        cluster_assign = []
+        for d in Dist_cutoff: 
+            cluster_assign.append(cut_tree(Z, height = d))
+
+        for n, conf in enumerate(self):
+
+            Erel = conf.Erel*self._Ha2kcal
+            for ecut, dcut in zip(E_cutoff, cluster_assign):
+                if (Erel < ecut) and ( dcut[n] not in dcut[:n] ):
+                    unique_conf.append(copy.deepcopy(conf))
+                    break 
+
+        return unique_conf 
+
     def calculate_ccs(self, method = 'pa', accuracy = 1):
         """ Calculates the collision cross section for each conformer. The parameters passed should generally just remain as their defaults values
 
         :param methond: (string) pa or ehss, methods of calculation
         :param accuracy: dont change the default, return a value converged within 1%
         """
-        for conf in self:  conf.calculate_ccs(self.path, method=method, accuracy=accuracy)
+        for conf in self:  conf.calculate_ccs(method=method, accuracy=accuracy)
 
     def gaussian_broadening(self, broaden=3):
         """Performs gaussian broadening for the set
@@ -418,46 +517,60 @@ class Space(list):
         for conf in self: conf.measure_glycosidic()
 
 
-    def plot_ccs(self, energy_function='E', ccs_exp=141, xmin=130., xmax=150., ymin = -1., ymax=30., xlabel = 'CCS$^{PA}$ [$\AA{}^2$]'):
+    def plot_ccs(self, output=None, energy_function='E', ccs_exp=141, xmin=130., xmax=150., ymin = -1., ymax=30., xlabel = 'CCS$^{PA}$ [$\AA{}^2$]', legend=True):
+
         """ Coformational free energy vs ccs, for every conformer
         """
 
         from matplotlib.ticker import NullFormatter, FormatStrFormatter
+
         #color = { 'LeA': '#a6cee3', 'LeX': '#1f78b4', 'BGH-1': '#b2df8a', 'BGH-2': '#33a02c', 'a16':'#fb9a99', 'b16':'#e31a1c', 'a14':'#fdbf6f' , 'b14': '#ff7f00', 'a13': '#cab2d6', 'b13': '#6a3d9a','a16n':'#ffff99','b16n':'#b15928', 'a12n': '#000000'}
         #marker ={ 'LeX': 'o',       'LeA': 'o'      , 'BGH-2': 'o'      , 'BGH-1':'o'      , 'a16': 'o',       'b16':'o'      , 'a14': 'o'      , 'b14': 'o'      , 'a13': 'o'      , 'b13': 'o'      ,'a16n':'o'      ,'b16n':'o'      , 'a12n': 'o'      }
 
-        color =  [ '#a6cee3', '#1f78b4', '#b2df8a','#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f' , '#ff7f00', '#cab2d6', '#6a3d9a', '#ffff99','#b15928']
+        #color =  [ '#a6cee3', '#1f78b4', '#b2df8a','#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f' , '#ff7f00', '#cab2d6', '#6a3d9a', '#ffff99','#b15928']
+        color = ['#1f78b4', '#e31a1c', '#33a02c']
+
+
         labels = [None] * len(self)
-        for i,conf in enumerate(self):
+        for i, conf in enumerate(self):
             labels[i] = conf.topol
         labels = list(set(labels))
+        labels.sort()
+
         Hs_label = []
         if 'unknown' in labels:  
             labels.remove('unknown') 
             Hs_label.append('unknown')
+
         for l in labels: 
             if l[-3:] == '_Hs' or l[-2:] == '_M': 
                 labels.remove(l) 
                 Hs_label.append(l)
+
         color = dict(zip(labels, color))
         for l in Hs_label: 
             color[l] = '#000000'
+
         print(color)
 
         #['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']
         nullfmt = NullFormatter()         # no labels
 
         fig, ax = plt.subplots(1, figsize=(6,10))
+
         ax.plot([ccs_exp, ccs_exp], [ymin, ymax], 'k--')
+
         for conf in self:
             if energy_function == 'E':
                 ax.scatter(conf.ccs, conf.Erel*self._Ha2kcal, s=20, color=color[conf.topol], marker='o', label=conf.topol)
+
             elif energy_function == 'F':
                 ax.scatter(conf.ccs, conf.Frel*self._Ha2kcal, s=20, color=color[conf.topol], marker='o', label=conf.topol)
 
         handles, labels = plt.gca().get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
-        ax.legend(by_label.values(), by_label.keys(), fontsize=18)
+
+        if legend:  ax.legend(by_label.values(), by_label.keys(), fontsize=18)
 
         if   energy_function == 'E' : ylabel = '$\Delta$E PBE0+D3 [kcal/mol]'
         elif energy_function == 'F':  ylabel = '$\Delta$F PBE0+D3 [kcal/mol]'
@@ -479,7 +592,10 @@ class Space(list):
         ax.plot([xmin-2.5,xmax+2.5], [ymin+0.05, ymin+0.05], 'k', lw=1.5)
         ax.plot([xmin-2.5+0.1, xmin-2.5+0.1], [0,ymax], 'k', lw=1.5)
         fig.tight_layout()
-        fig.savefig('/'.join([self.path, 'ccs_plot.png']), dpi=200, transparent=True)
-        fig.savefig('/'.join([self.path, 'ccs_plot.pdf']), dpi=200, transparent=True)
+        if output: 
+            #fig.savefig('/'.join([output, 'ccs_plot.png']), dpi=200, transparent=True)
+            fig.savefig('/'.join([output, 'ccs_plot.pdf']), dpi=200, transparent=True)
+        else: 
+            fig.savefig('/'.join([self.path, 'ccs_plot.pdf']), dpi=200, transparent=True)
 
 
