@@ -127,7 +127,7 @@ class Space(list):
         self.expIR = np.vstack((new_grid, interpolate.griddata(expIR[:,0], expIR[:,1], new_grid, method='cubic'))).T #espec - experimental spectrum
 
     def load_models(self, path):
-        """Loads a set of specific models used of analysis
+        """Loads a set of models, models are read from .xyz files
         """
         self.models = []
         for (root, dirs, files) in os.walk('./'+path):

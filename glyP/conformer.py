@@ -414,7 +414,6 @@ class Conformer():
         self.graph = nx.DiGraph()
         cm = nx.graph.Graph(self.conn_mat)
         cycles_in_graph = nx.cycle_basis(cm) #a cycle in the conn_mat would be a ring
-        #print(cycles_in_graph)
         atom_names = self.atoms
         ring_atoms = []
         n = 0
@@ -499,7 +498,7 @@ class Conformer():
                                 else:
                                     term = True ; break
                             else: c += 1 
-                        if c == 3: 
+                        if c == len(cycles_in_graph): 
                             linker_atoms.append(at) 
                             n += 1
                         if term == True: break
@@ -522,7 +521,7 @@ class Conformer():
                             else: linkage = 'b1'+linker_type
                         self.graph.add_edge(r1, r2, linker_atoms = linker_atoms, linker_type = linkage ) 
 
-        #Delete C6 bond if 16-linkage if present:
+        #Delete C6 bond if 16-linkage is present:
         for n in self.graph.nodes:
             node = self.graph.nodes[n]
             edge = self.graph.out_edges(n)
