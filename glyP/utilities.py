@@ -258,7 +258,7 @@ def measure_dihedral(conf, list_of_atoms):
   else:
       return (alpha*180.0)/np.pi, axor
 
-def gaussian_string_parameter(freeze, ra):
+def select_freeze(freeze, ra):
   """Returns the string parameter for gaussian to freeze either the dihedral angles or atom postitions that form the dihedral angles
   :param freeze: (str) a string either "dih" or "atoms"; this will return the string parameter to freeze the dihedral angles or freezing the atoms that form the dihedrals
   :param ra: (dict) ra (ring atoms) is a dictionary with the atom name and the atom number in the list of molecules
@@ -267,18 +267,20 @@ def gaussian_string_parameter(freeze, ra):
          [ra['C5'],ra['C3'],ra['C1'],ra['C2']],
          [ra['C1'],ra['C5'],ra['C3'],ra['C4']],
          [ra['C3'],ra['C1'],ra['C5'],ra['O' ]]]
+
   if freeze == "dih":
     freeze_dih=''
-    for List in dih_atoms:
-      for num in List:
-        freeze_dih=freeze_dih+str(num+1)+' '
+    for dih in dih_atoms:
+      for at in dih:
+        freeze_dih=freeze_dih+str(at+1)+' '
       freeze_dih=freeze_dih+'F\n'
     return(freeze_dih)
   elif freeze == "atoms":
-    freeze_atoms= 'notatoms='+str(ra['O'])+','+str(ra['C1']+1)+','+str(ra['C2']+1)+','+str(ra['C3']+1)+','+str(ra['C4']+1)+','+str(ra['C5']+1)
+    freeze_atoms= 'notatoms='+','.join([str(ra[x] + 1) for x in ['O', 'C1', 'C2', 'C3', 'C4', 'C5']])
     return(freeze_atoms)
-
-
+  elif freeze == "fhiaims":
+    return [ra[x] for x in ['O', 'C1', 'C2', 'C3', 'C4', 'C5']] 
+    
 def set_angle(conf, list_of_atoms, new_ang):
 
 
@@ -685,28 +687,28 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
 
 
 def calculate_rmsd(conf1, conf2, atoms=None):
-  """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
 
-  :param conf1: a conformer object
-  :param conf2: another conformer object
-  :atoms: (string) passing the atomic symbol the function will omit those atoms when calculating the rmsd. Most commonly used is 'H' to remove hydrogen
-  """
-  xyz1 = []
-  xyz2 = []
-  #exclude the specified atom
-  if atoms != None:
-    for i in range(len(conf1.atoms)):
-      if conf1.atoms[i] != atoms:
-        xyz1.append(conf1.xyz[i])
-    for i in range(len(conf2.atoms)):
-      if conf2.atoms[i] != atoms:
-        xyz2.append(conf2.xyz[i])
-  else:
-    xyz1 = conf1.xyz
-    xyz2 = conf2.xyz
+    """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
 
-  return rmsd.rmsd_qcp(xyz1, xyz2)
+    :param conf1: a conformer object
+    :param conf2: another conformer object
+    :atoms: (string) passing the atomic symbol the function will omit those atoms when calculating the rmsd. Most commonly used is 'H' to remove hydrogen
+    """
 
+    xyz1 = []
+    xyz2 = []
+
+    #exclude the specified atom
+
+    if atoms != None:
+        for n, i in enumerate(conf1.atoms):
+            if i in atoms: xyz1.append(conf1.xyz[n])
+        for n, i in enumerate(conf2.atoms):
+            if i in atoms: xyz2.append(conf2.xyz[n])
+    else:
+        xyz1 = conf1.xyz ; xyz2 = conf2.xyz
+
+    return rmsd.rmsd_qcp(xyz1, xyz2)
 
 def deriv(spec,h):
   """ calculate first derivative of function 'spec'

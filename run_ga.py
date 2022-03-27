@@ -48,8 +48,8 @@ def run_ga():
     output = GAsettings["output"]
     with open(output, 'w') as out: 
 
-        #sys.stdout = out 
-        #sys.stderr = out
+        sys.stdout = out 
+        sys.stderr = out
         print("Initialize:", dtime())
 
         #Generation
