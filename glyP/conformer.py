@@ -41,27 +41,29 @@ class Conformer():
         self._id = topol
         self.topol = topol
         self.path  = path
+        self.status = False
 
-    def load_model(self):
-        """Loads a xyz and constructs a confromer (model) that has only topol (name of the directory), xyz coordinates and atoms.
+    #def load_model(self):
+    #    """Loads a xyz and constructs a confromer (model) that has only topol (name of the directory), xyz coordinates and atoms.
+    #
+    #    """
+    #    self.NAtoms = None
+    #    self._id    = self.path.split('/')[-1]
+    #    self.topol = self._id
+    #    geom = [] ; atoms = []
 
-        """
-        self.NAtoms = None
-        self._id    = self.path.split('/')[-1]
-        self.topol = self._id
-        geom = [] ; atoms = []
+    #    for n, line in enumerate(open('/'.join([self.path, "geometry.xyz"]), 'r').readlines()): #this should be anything .xyz
+    #
+    #        if n == 0 and self.NAtoms == None: self.NAtoms = int(line)
+    #        if n > 1:
+    #            if len(line.split()) == 0: break 
+    #            geom.append([float(x) for x in line.split()[1:4]])
+    #            if line.split()[0].isalpha(): atoms.append(line.split()[0])
+    #            else: atoms.append(element_symbol(line.split()[0]))
 
-        for n, line in enumerate(open('/'.join([self.path, "geometry.xyz"]), 'r').readlines()): #this should be anything .xyz
-
-            if n == 0 and self.NAtoms == None: self.NAtoms = int(line)
-            if n > 1:
-                if len(line.split()) == 0: break 
-                geom.append([float(x) for x in line.split()[1:4]])
-                if line.split()[0].isalpha(): atoms.append(line.split()[0])
-                else: atoms.append(element_symbol(line.split()[0]))
-
-        self.xyz = np.array(geom)
-        self.atoms = atoms
+    #    self.xyz = np.array(geom)
+    #    self.atoms = atoms
+    #    self.status = False
 
     def create_input(self, theory, output,  software = 'g16'):
 
@@ -123,14 +125,16 @@ class Conformer():
             
             for at in diff_atoms:
                 EN="{0:02d}".format(element_number(at))
-                with open('/share/apps/fhi-aims.210226/species_defaults/'+theory['basis_set'] + '/' + EN + '_' +at+'_default','r') as light: 
+                with open('/exports/apps/fhi-aims.210226/species_defaults/'+theory['basis_set'] + '/' + EN + '_' +at+'_default','r') as light: 
                     for line in light.readlines():
                         c.write(line)
             c.close()
 
             g = open(geom_file, 'w')
-            for at, xyz in zip(self.atoms, self.xyz):                                           
-                line = 'atom      {0:10.3f} {1:10.3f} {2:10.3f} {3:3s}\n'.format( xyz[0], xyz[1], xyz[2], at)
+            for n, at, xyz in zip(range(self.NAtoms), self.atoms, self.xyz):
+                if n in theory['extra']: freeze = 'constrain_relaxation .true.'
+                else: freeze = '' 
+                line = 'atom      {0:10.3f} {1:10.3f} {2:10.3f} {3:3s}{4:s}\n'.format( xyz[0], xyz[1], xyz[2], at, freeze)
                 g.write(line)
             g.close()
 
@@ -160,7 +164,9 @@ class Conformer():
             os.chdir(cwd)
             return fhi_job.returncode
 
-    def calculate_ccs(self, temp_dir, method = 'pa', accuracy = 1):
+    def calculate_ccs(self, method = 'pa', accuracy = 1):
+
+
         """ Calls program sigma to calculate collision cross section, the sigma must be in the PATH variable. Need to change hardcoded paths otherwise it won't work
 
         :param temp_dir: (string) name of a directory that will be generated to hold onto some files generated during the calculations
@@ -170,18 +176,40 @@ class Conformer():
         #make a temp dir to store dat files
         #need to make a specialized .xyz file for sigma
 
-        with open( temp_dir + '/sig.xyz','w') as ccs:
+        if hasattr(self, 'ccs'): 
+            return None
+
+        #if not hasattr(self, 'outdir'):
+        #    outdir = '/'.join([output, self._id])
+        #    self.outdir = outdir
+
+        for ifiles in os.walk(self.path):
+            if "pa.dat" in ifiles[2]:
+                for line in open('/'.join([self.path, "pa.dat"])).readlines():
+#                     if re.search('Average PA', line.decode('utf-8')):
+#                         self.ccs  = float(line.decode('utf-8').split()[4])
+                     if re.search('Average PA', line):
+                         self.ccs  = float(line.split()[4])
+                         return None 
+
+        with open( '/'.join([self.path, 'sig.xyz']),'w') as ccs:
+
             ccs.write("{0:3d}\n".format(self.NAtoms))
             for at, xyz in zip(self.atoms, self.xyz):
                 ccs.write("{0:3s}{1:10.3f}{2:10.3f}{3:10.3f}\n".format(at, xyz[0], xyz[1], xyz[2] ))
             ccs.close()
+
         if method == 'pa':
             #requires a parameter file, needs to be a path variable !!!
-            ccs_job = Popen("sigma -f xyz -i " + str(temp_dir + '/sig.xyz') +' -n ' +  str(accuracy) + " -p /home/matma/bin/sigma-parameters.dat", shell=True, stdout=PIPE, stderr=PIPE)
-            #out, err = ccs_job.communicate()
-            for line in ccs_job.stdout.readlines():
-                #print (line)
-                if re.search('Average PA', line.decode('utf-8')): self.ccs  = float(line.decode('utf-8').split()[4])
+            with open('/'.join([self.path, 'pa.dat']), 'w') as out:
+                ccs_job = Popen("sigma -f xyz -i " + '/'.join([self.path,'sig.xyz']) +' -n ' +  str(accuracy) + " -p /home/matma/bin/sigma-parameters.dat", shell=True, stdout=out, stderr=out)
+                ccs_job.wait()
+                #out, err = ccs_job.communicate()
+            for line in open('/'.join([self.path, 'pa.dat']), 'r').readlines():
+                #if re.search('Average PA', line.decode('utf-8')): 
+                #    self.ccs  = float(line.decode('utf-8').split()[4])
+                if re.search('Average PA', line): 
+                    self.ccs  = float(line.split()[4])
 
     def load_log(self, software="g16"):
 
@@ -204,26 +232,27 @@ class Conformer():
             #temprorary variables to hold the data
             freq = [] ; ints = [] ; vibs = [] ; geom = [] ; atoms = []
     
-            job_opt = False ; job_freq = False ; job_optfreq = False ; job_sp = False ; job = 0
+            job_opt = False ; job_freq = False ; job_optfreq = False ; job_sp = False ; job_type = False
     
             self.NAtoms = None
             self._id    = self.path.split('/')[-1]
     
             for line in open("/".join([self.path, "input.log"]), 'r').readlines():
     
-                    if re.search('^ #', line) and job == 0:
+                    if job_type == False and re.search('^ #', line):
+
                         if "opt" in line:
                             if "freq" in line: 
-                                job_optfreq = True ; job += 1 
+                                job_optfreq = True ; job_type = True
                                 #print("Reading optfreq")
                             else: 
-                                job_opt = True ; job += 1 
+                                job_opt = True ; job_type = True 
                                 #print("Reading opt")
                         elif "freq" in line: 
-                                job_optfreq = True ; freq_flag = True ;  job += 1 
+                                job_optfreq = True ; freq_flag = True ;  job_type = True
                                 job_freq = True
                                 #print("Reading freq")
-                        else: job_sp = True ; job += 1 
+                        else: job_sp = True ; job_type = True
     
                     if self.NAtoms is None and re.search('^ NAtoms=', line): 
                         self.NAtoms = int(line.split()[1])
@@ -271,27 +300,27 @@ class Conformer():
                         elif freq_flag == True and re.search('Coordinates', line): 
                             if len(geom) == 0: read_geom = True
                         elif freq_flag == True and read_geom == True and re.search('^\s*.\d', line):
-                            #geom.append(map(float, line.split()[3:6])) 
-                            #convert to a parse directly into list rather than map
                             geom.append([float(x) for x in line.split()[3:6]])
                             atoms.append(element_symbol(line.split()[1]))
                             if int(line.split()[0]) == self.NAtoms:
                                read_geom = False
-    
+                        elif freq_flag == True and re.search('Normal termination', line): self.status = True
+
                     elif job_opt == True: 
     
                         if re.search('SCF Done',   line): E = float(line.split()[4])
                         if re.search('Optimization completed.', line): 
                              self.E = E ; opt_flag = True  
-                        elif opt_flag == True and re.search('Coordinates', line) : read_geom = True
+                        elif opt_flag == True and re.search('Standard orientation', line) : read_geom = True
+
                         elif opt_flag == True and read_geom == True and re.search('^\s*.\d', line):
-                             #geom.append(map(float, line.split()[3:6])) 
-                             #convert to a parse directly into list rather than map
-                             geom.append([float(x) for x in line.split()[3:6]])
-                             atoms.append(element_symbol(line.split()[1]))
-                             if int(line.split()[0]) == self.NAtoms:
+                            geom.append([float(x) for x in line.split()[3:6]])
+                            atoms.append(element_symbol(line.split()[1]))
+                            if int(line.split()[0]) == self.NAtoms:
                                read_geom = False
-    
+                        elif opt_flag == True and re.search('Normal termination', line): 
+                            self.status = True
+
                     elif job_sp == True:
     
                         print("No idea what you're dong")
@@ -328,9 +357,36 @@ class Conformer():
                     geom.append([ float(x) for x in line.split()[1:4] ])
                     atoms.append(line.split()[-1])
                 if read_geom == True and "--------" in line: read_geom = False
+
+                if "Have a nice day." in line: self.status = True
     
             self.xyz = np.array(geom)
             self.atoms = atoms
+
+        elif software == "xyz" : 
+#
+            self.NAtoms = None
+            self._id    = self.path.split('/')[-1]
+            self.topol = self._id
+            geom = [] ; atoms = []
+
+            for n, line in enumerate(open('/'.join([self.path, "geometry.xyz"]), 'r').readlines()): #this should be anything .xyz
+
+                if n == 0 and self.NAtoms == None: self.NAtoms = int(line)
+                if n == 1:
+                   try: 
+                       self.E = float(line)
+                   except: 
+                       pass 
+                if n > 1:
+                    if len(line.split()) == 0: break 
+                    geom.append([float(x) for x in line.split()[1:4]])
+                    if line.split()[0].isalpha(): atoms.append(line.split()[0])
+                    else: atoms.append(element_symbol(line.split()[0]))
+
+            self.xyz = np.array(geom)
+            self.atoms = atoms
+            self.status = True
 
     def __str__(self): 
 
@@ -338,10 +394,10 @@ class Conformer():
 
         print ("%20s%20s   NAtoms=%5d" %(self._id, self.topol, self.NAtoms))
         if hasattr(self, 'F'):  print ("E=%20.4f H=%20.4f F=%20.4f" %( self.E, self.H, self.F))
-        #else: print("E=%20.4f" %( self.E))
+        else: print("E=%20.4f" %(self.E))
         for n  in self.graph.nodes:
             ring = self.graph.nodes[n]
-            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f}".format(n, ring['ring'], ring['pucker'][0], ring['pucker'][1], ring['pucker'][2]), end='')
+            print ("Ring    {0:3d}:  {1:6s} {2:6.1f} {3:6.1f} {4:6.1f}".format(n, ring['ring'], ring['pucker'][0], ring['pucker'][1], ring['pucker'][2]), end='')
             if 'c6_atoms' in ring:
                 print("{0:10.1f}".format(ring['c6_dih']), end = '\n')
             else:
@@ -453,8 +509,13 @@ class Conformer():
             for C12 in C1s:
                 path = nx.shortest_path(cm, C1, C12)
                 if len(path) == 1: continue
+                elif len(path) == 3:  #1-1 glycosidic bond, oxygen will belong to the Reducing Carb, 
+                     NRed += 0.5
                 elif path[1] in ring_atoms[n].values(): NNon+=1
                 else: NRed += 1
+            if int(NRed) != NRed: 
+                if NRed == 0.5: pass
+                else: NRed+=1 #It's will be placed last
             C1pos.append(NRed)
         ring_atoms = [ i[0] for i in sorted(zip(ring_atoms, C1pos), key=itemgetter(1)) ]
 
@@ -474,11 +535,11 @@ class Conformer():
         for r1 in range(self.graph.number_of_nodes()):
             for r2 in range(self.graph.number_of_nodes()):
                 linker_atoms = [] ; linked = False
-                if r1 == r2 : pass
+                if r1 >= r2 : pass
                 else:
                     path = nx.shortest_path(cm, self.graph.nodes[r1]['ring_atoms']['C1'], self.graph.nodes[r2]['ring_atoms']['C1'])
                     n = 1 ; term = False
-                    while n < len(path):
+                    while n <= len(path):
                         at = path[-n]
                         #Check wheter path[n] is inside a cycle
                         c = 0 
@@ -492,29 +553,34 @@ class Conformer():
                                     linker_atoms.append(at)
                                     linked = True ; term = True  
                                     linker_type = (list(self.graph.nodes[r1]['ring_atoms'].keys())[list(self.graph.nodes[r1]['ring_atoms'].values()).index(at)])[-1]
-                                    C_psi = 'C'+str(int(linker_type)-1)
+                                    if len(path) == 3:  C_psi='O' 
+                                    else:               C_psi = 'C'+str(int(linker_type)-1)
                                     linker_atoms.append(self.graph.nodes[r1]['ring_atoms'][C_psi])
                                     break
                                 else:
                                     term = True ; break
                             else: c += 1 
+                            
                         if c == len(cycles_in_graph): 
                             linker_atoms.append(at) 
                             n += 1
                         if term == True: break
                     #print(linker_type)
 
+
                     if linked == True:
                         adj = adjacent_atoms(self.conn_mat, linker_atoms[1])
                         for at in adj:
                             if self.atoms[at] == 'H':
                                 list_of_atoms = linker_atoms[:3] + [at]
+                        #print(list_of_atoms)
                         idih = measure_dihedral( self, list_of_atoms )[0]
                         if linker_type == '5': linker_type = '6'
                         if self.atoms[linker_atoms[4]] == 'N':
-                            linker_type += 'N' 
+                            linker_type += 'N'
+                        #print(idih)
                         if idih < 0.0:
-                            if 'O6' in self.graph.nodes[r2]['ring_atoms'].keys(): linkage = 'b1'+linker_type
+                            if 'O6' in self.graph.nodes[r2]['ring_atoms'].keys(): linkage = 'b1'+linker_type #whether it's a Fucose or not
                             else: linkage = 'a1'+linker_type
                         elif idih >= 0.0: 
                             if 'O6' in self.graph.nodes[r2]['ring_atoms'].keys(): linkage = 'a1'+linker_type
@@ -637,7 +703,7 @@ class Conformer():
 
     def save_xyz(self):
 
-        xyz_file='/'.join([self.outdir,"geometry.xyz"])
+        xyz_file='/'.join([self.path, "geometry.xyz"])
         print(xyz_file)
         f = open(xyz_file, 'w')
         f.write('{0:3d}\n'.format(self.NAtoms))
@@ -646,7 +712,7 @@ class Conformer():
             line = '{0:5s} {1:10.3f} {2:10.3f} {3:10.3f}\n'.format(at, xyz[0], xyz[1], xyz[2])
             f.write(line)
 
-    def show_xyz(self, width=600, height=600):
+    def show_xyz(self, width=600, height=600, print_xyz = False):
         """ Displays a 3D rendering of the conformer using Py3Dmol
 
         :param width: the width of the display window 
@@ -660,7 +726,7 @@ class Conformer():
         xyzview.setStyle({'stick':{}})
         xyzview.zoomTo()
         xyzview.show()
-        print(XYZ)
+        if print_xyz == True: print(XYZ)
 
     def plot_ir(self,  xmin = 900, xmax = 1700, scaling_factor = 0.965,  plot_exp = False, exp_data = None, exp_int_split=False, normal_modes=False):
 

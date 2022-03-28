@@ -66,7 +66,7 @@ def adjacent_atoms(conn_mat, at):
   """returns all adjacent atoms to a specific atom in a conformation
 
   :param conn_mat: the connectivity matrix
-  :param at: a selected atom
+  :param at: index of a selected atom
   :return: all adjacent atoms to the selected atom
   """
   return np.nonzero(conn_mat[at,:])[0]
@@ -280,7 +280,6 @@ def select_freeze(freeze, ra):
     return(freeze_atoms)
   elif freeze == "fhiaims":
     return [ra[x] for x in ['O', 'C1', 'C2', 'C3', 'C4', 'C5']] 
-
 
 def set_angle(conf, list_of_atoms, new_ang):
 
@@ -688,28 +687,28 @@ def set_ring_pucker(conf, ring_number,ring_pucker=None):
 
 
 def calculate_rmsd(conf1, conf2, atoms=None):
-  """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
 
-  :param conf1: a conformer object
-  :param conf2: another conformer object
-  :atoms: (string) passing the atomic symbol the function will omit those atoms when calculating the rmsd. Most commonly used is 'H' to remove hydrogen
-  """
-  xyz1 = []
-  xyz2 = []
-  #exclude the specified atom
-  if atoms != None:
-    for i in range(len(conf1.atoms)):
-      if conf1.atoms[i] != atoms:
-        xyz1.append(conf1.xyz[i])
-    for i in range(len(conf2.atoms)):
-      if conf2.atoms[i] != atoms:
-        xyz2.append(conf2.xyz[i])
-  else:
-    xyz1 = conf1.xyz
-    xyz2 = conf2.xyz
+    """calculate the rmsd of two conformers; how similar the positions of the atoms are to each other
 
-  return rmsd.rmsd_qcp(xyz1, xyz2)
+    :param conf1: a conformer object
+    :param conf2: another conformer object
+    :atoms: (string) passing the atomic symbol the function will omit those atoms when calculating the rmsd. Most commonly used is 'H' to remove hydrogen
+    """
 
+    xyz1 = []
+    xyz2 = []
+
+    #exclude the specified atom
+
+    if atoms != None:
+        for n, i in enumerate(conf1.atoms):
+            if i in atoms: xyz1.append(conf1.xyz[n])
+        for n, i in enumerate(conf2.atoms):
+            if i in atoms: xyz2.append(conf2.xyz[n])
+    else:
+        xyz1 = conf1.xyz ; xyz2 = conf2.xyz
+
+    return rmsd.rmsd_qcp(xyz1, xyz2)
 
 def deriv(spec,h):
   """ calculate first derivative of function 'spec'
