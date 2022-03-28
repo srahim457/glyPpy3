@@ -263,6 +263,7 @@ def select_freeze(freeze, ra):
   :param freeze: (str) a string either "dih" or "atoms"; this will return the string parameter to freeze the dihedral angles or freezing the atoms that form the dihedrals
   :param ra: (dict) ra (ring atoms) is a dictionary with the atom name and the atom number in the list of molecules
   """
+
   dih_atoms = [
          [ra['C5'],ra['C3'],ra['C1'],ra['C2']],
          [ra['C1'],ra['C5'],ra['C3'],ra['C4']],
@@ -279,7 +280,21 @@ def select_freeze(freeze, ra):
     freeze_atoms= 'notatoms='+','.join([str(ra[x] + 1) for x in ['O', 'C1', 'C2', 'C3', 'C4', 'C5']])
     return(freeze_atoms)
   elif freeze == "fhiaims":
-    return [ra[x] for x in ['O', 'C1', 'C2', 'C3', 'C4', 'C5']] 
+    return [ra[x] for x in ['O', 'C1', 'C2', 'C3', 'C4', 'C5']]
+
+def select_freeze_linker(freeze, atoms):
+
+  if freeze == "dih":
+    freeze_dih=''
+    for a in atoms:
+      freeze_dih=freeze_dih+str(a+1)+' '
+    freeze_dih=freeze_dih+'F\n'
+    return(freeze_dih)
+  elif freeze == "atoms":
+    freeze_atoms= 'notatoms='+','.join([str(x + 1) for x in atoms])
+    return(freeze_atoms)
+  elif freeze == "fhiaims":
+    return atoms
 
 def set_angle(conf, list_of_atoms, new_ang):
 
