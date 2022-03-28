@@ -33,7 +33,7 @@ def puck_scan(**kwargs): #take a command line argument for the ring number
         dih_scan = glyP.Space(scan_settings["out_dir"], software=scan_settings["software"])
 
         #loads a model from in_dir that will be used to generate puckers
-        dih_scan.load_dir(scan_settings["in_dir"])
+        dih_scan.load_dir(scan_settings["in_dir"],software='xyz')
         reference_conf = dih_scan[0]
 
         #atoms in the edge: 
