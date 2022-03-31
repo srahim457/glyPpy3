@@ -2,9 +2,10 @@
 
 import glyP
 import copy, sys, os, shutil, argparse
+import numpy as np
 
 
-def puck_scan(**kwargs): #take a command line argument for the ring number
+def dih_scan(**kwargs): #take a command line argument for the ring number
 
     scan_settings = {
         "in_dir"   : "models",
@@ -21,7 +22,7 @@ def puck_scan(**kwargs): #take a command line argument for the ring number
         if kwargs[key] != None: scan_settings[key] = kwargs[key]
 
     output = scan_settings["output"]
-    ring = scan_settings["ring"]
+    ring = int(scan_settings["ring"])
 
     with open(output, 'w') as out: 
 
@@ -43,8 +44,7 @@ def puck_scan(**kwargs): #take a command line argument for the ring number
         freeze = glyP.utilities.select_freeze_linker(scan_settings["freeze"],linker_atoms)
         jobtype = {"dih" : "opt=modredundant", "atoms": "opt=readopt"}
 
-        ring_scan.set_theory(software='g16', method='PM3', basis_set= '', disp=False,  nprocs=12, mem='24GB', jobtype=jobtype[scan_settings["freeze"]], extra=freeze)
-        #ring_scan.set_theory(software='fhiaims', nprocs=12, charge=0.0, extra=freeze)
+        dih_scan.set_theory(software='g16', method='PM3', basis_set= '', disp=False,  nprocs=12, mem='24GB', jobtype=jobtype[scan_settings["freeze"]], extra=freeze)
 
         out.flush()
 
@@ -60,7 +60,7 @@ def puck_scan(**kwargs): #take a command line argument for the ring number
         workable_dihedrals=[]
         for phi in points:
             for psi in points:
-                conf.set_glycosidic((ring,ring+1),phi,psi)
+                reference_conf.set_glycosidic((ring,ring+1),phi,psi)
                 if glyP.utilities.clashcheck(reference_conf) == False:
                     workable_dihedrals.append([phi,psi])
 
@@ -68,21 +68,21 @@ def puck_scan(**kwargs): #take a command line argument for the ring number
 
             _id = '-'.join([reference_conf._id,'{0:03d}'.format(n)])
 
-            ring_scan.append(copy.deepcopy(reference_conf))
-            new_conf=ring_scan[-1]
+            dih_scan.append(copy.deepcopy(reference_conf))
+            new_conf=dih_scan[-1]
             new_conf._id = '-'.join([new_conf._id,'{0:03d}'.format(n)])
-            new_conf.path= '/'.join([ring_scan.path, new_conf._id])
+            new_conf.path= '/'.join([dih_scan.path, new_conf._id])
 
             if os.path.exists(new_conf.path): 
                 print("delete", new_conf._id)
                 shutil.rmtree(new_conf.path)
 
-            #set phi
-            glyP.utilities.set_dihedral(new_conf,phi_atoms,angle[0])
-            #set psi
-            glyP.utilities.set_dihedral(new_conf,psi_atoms,angle[1])            
-            new_conf.create_input(ring_scan.theory, ring_scan.path, software=scan_settings["software"])
-            succ_job = new_conf.run_qm(ring_scan.theory, software=scan_settings["software"])
+            #set phi, psi
+            new_conf.set_glycosidic((ring,ring+1),angle[0],angle[1])           
+            new_conf.create_input(dih_scan.theory, dih_scan.path, software=scan_settings["software"])
+            
+
+            succ_job = new_conf.run_qm(dih_scan.theory, software=scan_settings["software"])
 
             if not succ_job:
                 new_conf.load_log(software=scan_settings["software"])
@@ -90,12 +90,12 @@ def puck_scan(**kwargs): #take a command line argument for the ring number
                 print(new_conf)
             else:
                 print(new_conf._id + " failed. Moving to the next pucker.")
-                del ring_scan[-1]
+                del dih_scan[-1]
             out.flush()
 
-        ring_scan.reference_to_zero()
-        ring_scan.sort_energy()
-        ring_scan.print_relative(pucker=True)
+        dih_scan.reference_to_zero()
+        dih_scan.sort_energy()
+        dih_scan.print_relative(pucker=True)
 
 
 def main():
@@ -113,7 +113,7 @@ def main():
     parser.add_argument('--detail', '-d', choices=['low','medium','high'], required=False, help='the level of detail of the pucker scan, more detail means more conformations')
     args = parser.parse_args()
 
-    puck_scan(**vars(args))
+    dih_scan(**vars(args))
 
 if __name__ == '__main__':
     main()
