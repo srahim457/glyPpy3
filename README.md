@@ -16,8 +16,6 @@ The following packages are also required:
   
   - numpy
   - networkx
-  - copy
-  - math
   - matplotlib
   - seaborn
   - texttable
